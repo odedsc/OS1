@@ -8,7 +8,7 @@
 
 #include "signals.h"
 
-std::vector<job> jobs;
+extern std::vector<job> jobs;
 
 int smash_kill(pid_t pid, int sig){
 	if (pid == 0 || pid == -1) return -1;
