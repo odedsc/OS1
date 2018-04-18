@@ -79,7 +79,7 @@ int ExeCmd(void* jobs, char* lineSize, char* cmdString)
 			time_t full_time = present.tv_sec - i->time.tv_sec;
 
 			cout << '[' << j << "] " << i->job_name << " : " << i->pid << " " << full_time << " secs" << endl;
-
+			j++;
 /*			if (i->suspended == true)
 				cout << " (Stopped)";
 			cout << endl;*/
