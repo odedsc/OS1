@@ -68,13 +68,23 @@ int ExeCmd(void* jobs, char* lineSize, char* cmdString)
 	}
 	/*************************************************/
 	
-	else if (!strcmp(cmd, "jobs")) 
+	else if (!strcmp(cmd, "jobs"))
 	{
-		if (num_arg != 1)
+		if (num_arg!=0) return -1;
+		struct timeval present;
+		int j=1;
+		for( vector<Job>::iterator i = jobs.begin(); i != jobs.end(); ++i )
 		{
-			return -1;
+			gettimeofday(&present, NULL);
+			time_t full_time = present.tv_sec - i->time.tv_sec;
+
+			cout << '[' << j << "] " << i->job_name << " : " << i->pid << " " << full_time << " secs" << endl;
+
+/*			if (i->suspended == true)
+				cout << " (Stopped)";
+			cout << endl;*/
 		}
-		
+
 	}
 	/*************************************************/
 	else if (!strcmp(cmd, "showpid")) 
