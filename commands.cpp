@@ -1,11 +1,6 @@
 //		commands.c
 //********************************************
 #include "commands.h"
-
-bool Job_Sort(const Job job1, const Job job2)
-{
-	return job1->ID < job2->ID;
-}
 //********************************************
 // function name: ExeCmd
 // Description: interperts and executes built-in commands
@@ -73,22 +68,13 @@ int ExeCmd(void* jobs, char* lineSize, char* cmdString)
 	}
 	/*************************************************/
 	
-	else if (!strcmp(cmd, "jobs"))
+	else if (!strcmp(cmd, "jobs")) 
 	{
-		if (num_arg!=0) return -1;
-		struct timeval present;
-		sort(sort(job_stack.begin(), job_stack.end(), ID_sort));
-		for( vector<Job>::iterator i = jobs.begin(); i != jobs.end(); ++i )
+		if (num_arg != 1)
 		{
-			gettimeofday(&present, NULL);
-			time_t full_time = present.tv_sec - i->time.tv_sec;
-
-			cout << '[' << i->ID << "] " << i->job_name << " : " << i->pid << " " << full_time << " secs" << endl;
-/*			if (i->suspended == true)
-				cout << " (Stopped)";
-			cout << endl;*/
+			return -1;
 		}
-
+		
 	}
 	/*************************************************/
 	else if (!strcmp(cmd, "showpid")) 
@@ -97,47 +83,56 @@ int ExeCmd(void* jobs, char* lineSize, char* cmdString)
 		//no failures
 	}
 	/*************************************************/
-	else if (!strcmp(cmd, "fg"))
+	else if (!strcmp(cmd, "fg")) 
 	{
-		if ((num_arg!=0) || (num_arg!=1)) return -1;
-		else if (jobs.empty()) break;
-		else if (num_arg==0){
-			cout << jobs.back()->name << endl;
-		}
-		else if (num_arg==1){
-			for( vector<Job>::iterator i = jobs.begin(); i != jobs.end(); ++i )
-			{
-				if (i->ID==arg[1]){
-					cout << i->name << endl;
-					if (i->suspended){
-						smash_kill(i->pid,SIGCONT));
-					}
-					smash_wait(i);
-					break;
-				}
-			}
-		}
+		
+	} 
+	/*************************************************/
+	else if (!strcmp(cmd, "bg")) 
+	{
+  		
 	}
 	/*************************************************/
-	else if (!strcmp(cmd, "bg"))
+	else if (!strcmp(cmd, "kill")) 
 	{
-		if ((num_arg!=0) || (num_arg!=1)) return -1;
-		else if (jobs.empty()) break;
-		else if (num_arg==0){
-			cout << jobs.back()->name << endl;
-		}
-		else if (num_arg==1){
-			for( vector<Job>::iterator i = jobs.begin(); i != jobs.end(); ++i )
+			if (num_arg != 2)
+				return -1;
+			if (*(args[1]) != '-')
+				return -1;
+
+			int sig_num = atoi(args[1] + 1); // +1 to remove the '-'
+			if (sig_num <= 0 || sig_num >= 32)
 			{
-				if (i->ID==arg[1]){
-					cout << i->name << endl;
-					if (i->suspended){
-						smash_kill(i->pid,SIGCONT));
-					}
-					break;
+				return -1;
+			}
+			int  job_id;   
+			if (num_arg == 2)
+			{
+				job_id = atoi(args[1])
+			}
+			else
+			{
+				job_id = -1;
+			}
+			bool job_exist = false;
+
+			for (i = jobs.begin(); i != jobs.end(); i++)
+			{
+				if (num_arg == 2 && (i->ID != job_id))
+				{
+					continue;
+				}
+				job_exist = true;
+				if (smash_kill(i->pID, sig_num) == -1)
+				{
+					cout << "smash error: > kill " << i->ID << " - cannot send signal" << endl;
 				}
 			}
-		}
+			if (job_exist == false && num_arg == 2)
+			{
+				cout << "smash error: > kill " << job_id << " - job does not exist" << endl;
+			}
+			return 0;
 	}
 	/*************************************************/
 	else if (!strcmp(cmd, "quit"))
