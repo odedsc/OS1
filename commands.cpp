@@ -79,7 +79,8 @@ int ExeCmd(void* jobs, char* lineSize, char* cmdString)
 	/*************************************************/
 	else if (!strcmp(cmd, "showpid")) 
 	{
-		
+		cout << "smash pid is " << getpid() << endl;
+		//no failures
 	}
 	/*************************************************/
 	else if (!strcmp(cmd, "fg")) 
