@@ -8,8 +8,7 @@
 // contains the function/s that set the signal handlers
 
 /*******************************************/
-/* Name: handler_cntlc
-   Synopsis: handle the Control-C */
+
 #include "signals.h"
 
 int smash_kill(pid_t pid, int sig){
