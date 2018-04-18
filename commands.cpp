@@ -93,10 +93,24 @@ int ExeCmd(void* jobs, char* lineSize, char* cmdString)
 		//no failures
 	}
 	/*************************************************/
-	else if (!strcmp(cmd, "fg")) 
+	else if (!strcmp(cmd, "fg"))
 	{
-		
-	} 
+		if ((num_arg!=0) || (num_arg!=1)) return -1;
+		else if (jobs.empty()) break;
+		else if (num_arg==0){
+			cout << jobs.back()->name << endl;
+		}
+		else if (num_arg==1){
+			for( vector<Job>::iterator i = jobs.begin(); i != jobs.end(); ++i )
+			{
+				if (i->ID==arg[1]){
+					cout << i->name << endl;
+					smash_wait(i);
+					break;
+				}
+			}
+		}
+	}
 	/*************************************************/
 	else if (!strcmp(cmd, "bg")) 
 	{
