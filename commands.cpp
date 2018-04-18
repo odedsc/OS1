@@ -31,11 +31,12 @@ int ExeCmd(void* jobs, char* lineSize, char* cmdString)
 // ARE IN THIS CHAIN OF IF COMMANDS. PLEASE ADD
 // MORE IF STATEMENTS AS REQUIRED
 /*************************************************/
-	if (!strcmp(cmd, "cd") ) 
+	if (!strcmp(cmd, "cd") )
 	{
-		
-	} 
-	
+		if (chdir(args[1])==-1){
+			cout << "smash error: > " << args[PATH] << " - path not found" << endl;
+		}
+	}	
 	/*************************************************/
 	else if (!strcmp(cmd, "pwd")) 
 	{
