@@ -39,12 +39,19 @@ int ExeCmd(void* jobs, char* lineSize, char* cmdString)
 	/*************************************************/
 	else if (!strcmp(cmd, "pwd")) 
 	{
-		if (num_arg != 1) return -1;
+		if (num_arg != 1)
+		{
+			return -1;
+		}
 		char directory[MAX_LINE_SIZE];
-		if (getcwd(directory,sizeof(directory)) != NULL)
+		if (getcwd(directory, sizeof(directory)) != NULL)
+		{
 			cout << directory << endl;
+		}
 		else
+		{
 			cout << "System function falied: getcwd" << endl;
+		}
 		return 0;
 	}
 	
