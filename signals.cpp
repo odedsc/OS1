@@ -1,8 +1,5 @@
 /*
  * signals.cpp
- *
- *  Created on: Apr 18, 2018
- *      Author: os
  */
 // contains signal handler funtions
 // contains the function/s that set the signal handlers
