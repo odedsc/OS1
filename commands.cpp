@@ -33,19 +33,14 @@ int ExeCmd(void* jobs, char* lineSize, char* cmdString)
 /*************************************************/
 	if (!strcmp(cmd, "cd") )
 	{
-		if (num_arg!=1) return -1;
-		else if (!strcmp(arg[1], "-"){
-			chdir("..");
-			coud << getcwd << endl;
-		}
-		else if (chdir(args[1])==-1){
+		if (chdir(args[1])==-1){
 			cout << "smash error: > " << args[PATH] << " - path not found" << endl;
 		}
-	}
+	}	
 	/*************************************************/
 	else if (!strcmp(cmd, "pwd")) 
 	{
-		if (num_arg != 1)
+		if (num_arg != 0)
 		{
 			return -1;
 		}
@@ -70,7 +65,11 @@ int ExeCmd(void* jobs, char* lineSize, char* cmdString)
 	
 	else if (!strcmp(cmd, "jobs")) 
 	{
- 		
+		if (num_arg != 1)
+		{
+			return -1;
+		}
+		
 	}
 	/*************************************************/
 	else if (!strcmp(cmd, "showpid")) 
