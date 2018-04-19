@@ -1,8 +1,3 @@
-/*
- * signals.h
- */
-
-
 #ifndef _SIGS_H
 #define _SIGS_H
 #include <sys/types.h>
