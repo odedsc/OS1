@@ -77,7 +77,14 @@ int ExeCmd(void* jobs, char* lineSize, char* cmdString)
 	/*************************************************/
 	else if (!strcmp(cmd, "history")) 
 	{
-		
+		history_list.reverse();
+		list<char*>::iterator it;
+		for (it = history_list.begin(); it != history_list.end(); it++)
+		{
+			cout << it << endl;
+		}
+		history_list.reverse();
+		return 0;
 	}
 	/*************************************************/
 	else if (!strcmp(cmd, "mkdir"))
