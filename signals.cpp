@@ -1,3 +1,9 @@
+/*
+ * signals.cpp
+ *
+ *  Created on: Apr 18, 2018
+ *      Author: os
+ */
 // contains signal handler funtions
 // contains the function/s that set the signal handlers
 
@@ -5,7 +11,8 @@
 
 #include "signals.h"
 
-extern std::vector<job> jobs;
+extern vector<Job> jobs;
+extern pid_t currFG_PID;
 
 int smash_kill(pid_t pid, int sig){
 	if (pid == 0 || pid == -1) return -1;
@@ -19,22 +26,35 @@ int smash_kill(pid_t pid, int sig){
 void smash_wait(vector<Job>::iterator pJob){
 //	pid_t child_pid = pJob->pid;
 	int* statusPtr;
-	pid_t last_pid = waitpid(child_pid, statusPtr, WUNTRACED);
+	pid_t last_pid = waitpid(pJob->pid, statusPtr, WUNTRACED);
 	if (last_pid==pJob->pid){
-		for (vector<Job>::iterator i = job_stack.begin(); i != job_stack.end(); ++i)
+		for (vector<Job>::iterator i = jobs.begin(); i != jobs.end(); ++i)
 		{
 			if (i->pid==last_pid){
 				pJob=i;
 				break;
 			}
 		}
-		if (!WIFSTOPPED(*StatusPtr)){
+		if (!WIFSTOPPED(*statusPtr)){
 			jobs.erase(pJob);
 		}
 	}
 }
 
-
 void aux_smash_kill(int sig){
 	smash_kill(currFG_PID,sig);
+}
+
+void smash_sigchld(int sig){
+	for (vector<Job>::iterator i = jobs.begin(); i != jobs.end(); ++i)
+	{
+		int* statusPtr;
+		pid_t last_pid = waitpid(i->pid, statusPtr, WUNTRACED);
+		if (last_pid == i->pid && i->pid!=currFG_PID){
+			if (!WIFSTOPPED(*statusPtr)){
+				jobs.erase(i);
+				i--;
+			}
+		}
+	}
 }
