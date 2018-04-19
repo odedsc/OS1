@@ -257,30 +257,27 @@ int ExeCmd(void* jobs, char* lineSize, char* cmdString)
 void ExeExternal(char *args[MAX_ARG], char* cmdString)
 {
 	int pID;
-    	switch(pID = fork()) 
+    	switch(pID = fork())
 	{
-    		case -1: 
-					// Add your code here (error)
-					
-					/* 
-					your code
-					*/
+    		case -1:
+					perror("error in fork function");
+					return;
         	case 0 :
                 	// Child Process
                		setpgrp();
-					
-			        // Add your code here (execute an external command)
-					
-					/* 
-					your code
-					*/
-			
+
+                	if (execvp(const_cast<char*>(*args), const_cast<char**>(args))==-1){
+                		perror("execution failed");
+                		exit(1);
+                	}
+
 			default:
-                	// Add your code here
-					
-					/* 
-					your code
-					*/
+					jobs.push_back(Job(args[0],pID,false));
+					if (cmdString=="fg"){
+						smash_wait(jobs.end()-1);
+					}
+
+
 	}
 }
 //**************************************************************************************
@@ -291,16 +288,19 @@ void ExeExternal(char *args[MAX_ARG], char* cmdString)
 //**************************************************************************************
 int ExeComp(char* lineSize)
 {
-	char ExtCmd[MAX_LINE_SIZE+2];
-	char *args[MAX_ARG];
+//	char ExtCmd[MAX_LINE_SIZE+2];
+	char *args[MAX_ARG]={"/bin/csh", "-f", "-c", lineSize, NULL};
     if ((strstr(lineSize, "|")) || (strstr(lineSize, "<")) || (strstr(lineSize, ">")) || (strstr(lineSize, "*")) || (strstr(lineSize, "?")) || (strstr(lineSize, ">>")) || (strstr(lineSize, "|&")))
     {
-		// Add your code here (execute a complicated command)
-					
-		/* 
-		your code
-		*/
-	} 
+    	if (lineSize[strlen(lineSize)-2] == '&'){
+    		lineSize[strlen(lineSize)-2] = '\0';
+        	ExeExternal(const_cast<char**>(args), "bg");
+    	}
+
+    	ExeExternal(const_cast<char**>(args), "fg");
+
+    	return 0;
+	}
 	return -1;
 }
 //**************************************************************************************
