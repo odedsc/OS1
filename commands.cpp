@@ -208,6 +208,16 @@ int ExeCmd(void* jobs, char* lineSize, char* cmdString)
 		}
 	}
 	/*************************************************/
+	else if (!strcmp(cmd, "mv"))
+	{
+		if (num_arg!=2) return -1;
+		if (rename(args[1], args[2])==-1){
+			perror("error in mv command");
+			return -1;
+		}
+		cout << args[1] << "has been renamed to" << args[2] << endl;
+	}
+	/*************************************************/
 	else // external command
 	{
  		ExeExternal(args, cmdString);
