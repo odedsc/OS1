@@ -20,6 +20,7 @@
 #include <list>
 #define MAX_LINE_SIZE 80
 #define MAX_ARG 20
+#define MAX_HISTORY 50
 typedef enum { FALSE , TRUE } bool;
 int ExeComp(char* lineSize);
 int BgCmd(char* lineSize, void* jobs);
