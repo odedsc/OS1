@@ -1,7 +1,14 @@
 //		commands.c
 //********************************************
 #include "commands.h"
-//********************************************
+#include "signals.h"
+
+using namespace std;
+
+bool Job_Sort(const Job job1, const Job job2)
+{
+	return job1->ID < job2->ID;
+}//********************************************
 // function name: ExeCmd
 // Description: interperts and executes built-in commands
 // Parameters: pointer to jobs, command string
@@ -137,8 +144,27 @@ int ExeCmd(void* jobs, char* lineSize, char* cmdString)
 	/*************************************************/
 	else if (!strcmp(cmd, "quit"))
 	{
-   		
-	} 
+		if ((num_arg!=0) || (num_arg!=1)) return -1;
+		if (num_arg==0) exit(0);
+		else if (num_arg==1){
+			while (!job_stack.empty())
+			{
+				smash_kill(jobs.begin()->pid,SIGTERM);
+				cout << "[" << jobs.begin()->ID << "]" << jobs.begin()->name << " - Sending SIGTERM...";
+				sleep(5);
+				int last_ID = waitpid(jobs.begin()->pid, NULL, WNOHANG);
+				if (last_ID == 0){
+					Smash_Kill(child_pID, SIGKILL);
+					cout << " (5 sec passed) Sending SIGKILL... Done" << endl;
+				}
+				else {
+					cout << " Done." << endl;
+				}
+				jobs.erase(jobs.begin());
+			}
+
+		}
+	}
 	/*************************************************/
 	else // external command
 	{
