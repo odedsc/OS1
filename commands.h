@@ -17,14 +17,15 @@
 #include <sys/wait.h>
 #include <string>
 #include <vector>
+#include <stdbool.h>
 #include <list>
+#define MAX_HISTORY 50
 #define MAX_LINE_SIZE 80
 #define MAX_ARG 20
-#define MAX_HISTORY 50
-typedef enum { FALSE , TRUE } bool;
+//typedef enum { FALSE , TRUE } bool;
 int ExeComp(char* lineSize);
-int BgCmd(char* lineSize, void* jobs);
-int ExeCmd(void* jobs, char* lineSize, char* cmdString);
+int BgCmd(char* lineSize, vector<Job> jobs);
+int ExeCmd(vector<Job> jobs, char* lineSize, char* cmdString);
 void ExeExternal(char *args[MAX_ARG], char* cmdString);
 #endif
 
