@@ -8,10 +8,12 @@ main file. This file contains the main function of smash
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
+#include <iostream.h>
 #include "commands.h"
 #include "signals.h"
 #define MAX_LINE_SIZE 80
 #define MAXARGS 20
+
 
 char* L_Fg_Cmd;
 void* jobs = NULL; //This represents the list of jobs. Please change to a preferred type (e.g array of char*)
@@ -22,24 +24,23 @@ char lineSize[MAX_LINE_SIZE];
 //**************************************************************************************
 int main(int argc, char *argv[])
 {
-    char cmdString[MAX_LINE_SIZE]; 	   
-
+	char cmdString[MAX_LINE_SIZE]; 	
 	
-	//signal declaretions
-	//NOTE: the signal handlers and the function/s that sets the handler should be found in siganls.c
-	 /* add your code here */
+	if (signal(SIGTSTP, smash_kill) != 0)
+	{
+		perror("signal error");
+	}
+    	if (signal(SIGINT,  smash_kill) != 0)
+	{
+		perror("signal error");
+	}
+    	if (signal(SIGCHLD, Smash_SIGCHLD) != 0)
+	{
+		perror("signal error");
+	}
 	
-	/************************************/
-	//NOTE: the signal handlers and the function/s that sets the handler should be found in siganls.c
-	//set your signal handlers here
-	/* add your code here */
-
-	/************************************/
-
-	/************************************/
 	// Init globals 
-
-
+	 /* add your code here */
 	
 	L_Fg_Cmd =(char*)malloc(sizeof(char)*(MAX_LINE_SIZE+1));
 	if (L_Fg_Cmd == NULL) 
