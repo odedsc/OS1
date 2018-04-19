@@ -1,4 +1,11 @@
-//		commands.c
+/*
+ * commands.cpp
+ *
+ *  Created on: Apr 19, 2018
+ *      Author: os
+ */
+
+//		
 //********************************************
 #include "commands.h"
 #include "signals.h"
@@ -7,38 +14,38 @@ using namespace std;
 
 bool Job_Sort(const Job job1, const Job job2)
 {
-	return job1->ID < job2->ID;
+	return job1.ID < job2.ID;
 }//********************************************
 // function name: ExeCmd
 // Description: interperts and executes built-in commands
 // Parameters: pointer to jobs, command string
 // Returns: 0 - success,1 - failure
 //**************************************************************************************
-int ExeCmd(void* jobs, char* lineSize, char* cmdString)
+int ExeCmd(vector<Job> jobs, char* lineSize, char* cmdString)
 {
-	char* cmd; 
+	char* cmd;
 	char* args[MAX_ARG];
 	char pwd[MAX_LINE_SIZE];
-	char* delimiters = " \t\n";  
+	char* delimiters = " \t\n";
 	int i = 0, num_arg = 0;
-	bool illegal_cmd = FALSE; // illegal command
-	list<char*> history_list(MAX_HISTORY);
+	bool illegal_cmd = false; // illegal command
+	list<char*> history_list;
     	cmd = strtok(lineSize, delimiters);
 	if (cmd == NULL)
-		return 0; 
+		return 0;
 	if (history_list.size() == MAX_HISTORY)
 	{
 		history_list.pop_back();
-		
+
 	}
 	history_list.push_front(cmd);
    	args[0] = cmd;
 	for (i=1; i<MAX_ARG; i++)
 	{
-		args[i] = strtok(NULL, delimiters); 
-		if (args[i] != NULL) 
-			num_arg++; 
- 
+		args[i] = strtok(NULL, delimiters);
+		if (args[i] != NULL)
+			num_arg++;
+
 	}
 /*************************************************/
 // Built in Commands PLEASE NOTE NOT ALL REQUIRED
@@ -47,17 +54,17 @@ int ExeCmd(void* jobs, char* lineSize, char* cmdString)
 /*************************************************/
 	if (!strcmp(cmd, "cd") )
 	{
-		if (num_arg!=1) return -1;
+		if (num_arg != 1) return -1;
 		else if (!strcmp(arg[1], "-"){
 			chdir("..");
-			coud << getcwd << endl;
+			cout << getcwd << endl;
 		}
 		else if (chdir(args[1])==-1){
-			cout << "smash error: > " << args[PATH] << " - path not found" << endl;
+			cout << "smash error: > " << args[1] << " - path not found" << endl;
 		}
-	}	
+	}
 	/*************************************************/
-	else if (!strcmp(cmd, "pwd")) 
+	else if (!strcmp(cmd, "pwd"))
 	{
 		if (num_arg != 0)
 		{
@@ -75,7 +82,7 @@ int ExeCmd(void* jobs, char* lineSize, char* cmdString)
 		return 0;
 	}
 	/*************************************************/
-	else if (!strcmp(cmd, "history")) 
+	else if (!strcmp(cmd, "history"))
 	{
 		history_list.reverse();
 		list<char*>::iterator it;
@@ -86,13 +93,6 @@ int ExeCmd(void* jobs, char* lineSize, char* cmdString)
 		history_list.reverse();
 		return 0;
 	}
-	/*************************************************/
-	else if (!strcmp(cmd, "mkdir"))
-	{
- 		
-	}
-	/*************************************************/
-	
 	else if (!strcmp(cmd, "jobs"))
 	{
 		if (num_arg!=0) return -1;
@@ -111,7 +111,7 @@ int ExeCmd(void* jobs, char* lineSize, char* cmdString)
 
 	}
 	/*************************************************/
-	else if (!strcmp(cmd, "showpid")) 
+	else if (!strcmp(cmd, "showpid"))
 	{
 		cout << "smash pid is " << getpid() << endl;
 		//no failures
@@ -160,7 +160,7 @@ int ExeCmd(void* jobs, char* lineSize, char* cmdString)
 		}
 	}
 	/*************************************************/
-	else if (!strcmp(cmd, "kill")) 
+	else if (!strcmp(cmd, "kill"))
 	{
 			if (num_arg != 2)
 				return -1;
@@ -172,7 +172,7 @@ int ExeCmd(void* jobs, char* lineSize, char* cmdString)
 			{
 				return -1;
 			}
-			int  job_id;   
+			int  job_id;
 			if (num_arg == 2)
 			{
 				job_id = atoi(args[1])
@@ -238,6 +238,9 @@ int ExeCmd(void* jobs, char* lineSize, char* cmdString)
 	/*************************************************/
 	else // external command
 	{
+		if (ExeComp(lineSize) == -1){
+			BgCmd(lineSize,jobs);
+		}
  		ExeExternal(args, cmdString);
 	 	return 0;
 	}
@@ -309,10 +312,10 @@ int ExeComp(char* lineSize)
 // Parameters: command string, pointer to jobs
 // Returns: 0- BG command -1- if not
 //**************************************************************************************
-int BgCmd(char* lineSize, void* jobs)
+int BgCmd(char* lineSize, vector<Job> jobs)
 {
 
-	char* Command;
+	char* cmd;
 	char* delimiters = " \t\n";
 	char *args[MAX_ARG];
 	if (lineSize[strlen(lineSize)-2] == '&')
@@ -322,7 +325,7 @@ int BgCmd(char* lineSize, void* jobs)
     	if (cmd == NULL)
     		return 0;
     	args[0] = cmd;
-    	for (i=1; i<MAX_ARG; i++)
+    	for (int i=1; i<MAX_ARG; i++)
     	{
     		args[i] = strtok(NULL, delimiters);
     	}
@@ -330,4 +333,5 @@ int BgCmd(char* lineSize, void* jobs)
 	}
 	return -1;
 }
- 
+
+
