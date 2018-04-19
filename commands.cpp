@@ -75,13 +75,22 @@ int ExeCmd(void* jobs, char* lineSize, char* cmdString)
 	}
 	/*************************************************/
 	
-	else if (!strcmp(cmd, "jobs")) 
+	else if (!strcmp(cmd, "jobs"))
 	{
-		if (num_arg != 1)
+		if (num_arg!=0) return -1;
+		struct timeval present;
+		sort(sort(job_stack.begin(), job_stack.end(), ID_sort));
+		for( vector<Job>::iterator i = jobs.begin(); i != jobs.end(); ++i )
 		{
-			return -1;
+			gettimeofday(&present, NULL);
+			time_t full_time = present.tv_sec - i->time.tv_sec;
+
+			cout << '[' << i->ID << "] " << i->job_name << " : " << i->pid << " " << full_time << " secs" << endl;
+/*			if (i->suspended == true)
+				cout << " (Stopped)";
+			cout << endl;*/
 		}
-		
+
 	}
 	/*************************************************/
 	else if (!strcmp(cmd, "showpid")) 
@@ -90,14 +99,47 @@ int ExeCmd(void* jobs, char* lineSize, char* cmdString)
 		//no failures
 	}
 	/*************************************************/
-	else if (!strcmp(cmd, "fg")) 
+	else if (!strcmp(cmd, "fg"))
 	{
-		
-	} 
+		if ((num_arg!=0) || (num_arg!=1)) return -1;
+		else if (jobs.empty()) break;
+		else if (num_arg==0){
+			cout << jobs.back()->name << endl;
+		}
+		else if (num_arg==1){
+			for( vector<Job>::iterator i = jobs.begin(); i != jobs.end(); ++i )
+			{
+				if (i->ID==arg[1]){
+					cout << i->name << endl;
+					if (i->suspended){
+						smash_kill(i->pid,SIGCONT));
+					}
+					smash_wait(i);
+					break;
+				}
+			}
+		}
+	}
 	/*************************************************/
-	else if (!strcmp(cmd, "bg")) 
+	else if (!strcmp(cmd, "bg"))
 	{
-  		
+		if ((num_arg!=0) || (num_arg!=1)) return -1;
+		else if (jobs.empty()) break;
+		else if (num_arg==0){
+			cout << jobs.back()->name << endl;
+		}
+		else if (num_arg==1){
+			for( vector<Job>::iterator i = jobs.begin(); i != jobs.end(); ++i )
+			{
+				if (i->ID==arg[1]){
+					cout << i->name << endl;
+					if (i->suspended){
+						smash_kill(i->pid,SIGCONT));
+					}
+					break;
+				}
+			}
+		}
 	}
 	/*************************************************/
 	else if (!strcmp(cmd, "kill")) 
