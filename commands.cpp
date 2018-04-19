@@ -309,22 +309,53 @@ int ExeComp(char* lineSize)
 // Parameters: command string, pointer to jobs
 // Returns: 0- BG command -1- if not
 //**************************************************************************************
-int BgCmd(char* lineSize, void* jobs)
+int BgCmd(char* lineSize)
 {
 
-	char* Command;
-	char* delimiters = " \t\n";
+	char* cmd = strtok(lineSize, delimiters);
 	char *args[MAX_ARG];
 	if (lineSize[strlen(lineSize)-2] == '&')
 	{
 		lineSize[strlen(lineSize)-2] = '\0';
-		// Add your code here (execute a in the background)
-					
-		/* 
-		your code
-		*/
+		args[0] = cmd;
+		for (int i = 1; i < MAX_ARG; ++i)
+		{
+			args[i] = strtok(NULL, delimiters);
+			if (args[i] == NULL)
+			{
+				break;
+			}
+		}
+		pid_t pID = fork();
+		if (pID == -1)
+		{
+    			perror("fork error");
+    			return -1;
+		}
+		else if (pID == 0)
+		{
+			///////////////////
+    			setpgrp();
+    			if (execvp(const_cast<char*>(*args), const_cast<char**>(args)))
+    			perror("error");
+    			return -1;
+			///////////////////
+		}
+		else
+		{
+			    jobs.push_back(////// מה להכניס פה);
+				    }
+		if (exec_type == EXEC_FG)
+		{
+			gFg_pID  = pID;
+			Smash_Wait(job_stack.end()-1);
+		}
+	}
+
+		}
 		
+		return 0;
 	}
 	return -1;
 }
-
+		 
