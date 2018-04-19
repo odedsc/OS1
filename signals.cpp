@@ -35,3 +35,6 @@ void smash_wait(vector<Job>::iterator pJob){
 }
 
 
+void aux_smash_kill(int sig){
+	smash_kill(currFG_PID,sig);
+}
