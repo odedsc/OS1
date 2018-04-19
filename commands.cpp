@@ -22,9 +22,16 @@ int ExeCmd(void* jobs, char* lineSize, char* cmdString)
 	char* delimiters = " \t\n";  
 	int i = 0, num_arg = 0;
 	bool illegal_cmd = FALSE; // illegal command
+	list<char*> history_list(MAX_HISTORY);
     	cmd = strtok(lineSize, delimiters);
 	if (cmd == NULL)
 		return 0; 
+	if (history_list.size() == MAX_HISTORY)
+	{
+		history_list.pop_back();
+		
+	}
+	history_list.push_front(cmd);
    	args[0] = cmd;
 	for (i=1; i<MAX_ARG; i++)
 	{
@@ -67,7 +74,11 @@ int ExeCmd(void* jobs, char* lineSize, char* cmdString)
 		}
 		return 0;
 	}
-	
+	/*************************************************/
+	else if (!strcmp(cmd, "history")) 
+	{
+		
+	}
 	/*************************************************/
 	else if (!strcmp(cmd, "mkdir"))
 	{
