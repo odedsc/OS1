@@ -1,9 +1,9 @@
 /*
- * smash.cpp
+ /* smash.cpp
  *
  *  Created on: Apr 19, 2018
  *      Author: os
- */
+ *
 main file. This file contains the main function of smash
 *******************************************************************/
 #include <sys/types.h>
@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
 	/* add your code here */
     signal(SIGTSTP, aux_smash_kill);
     signal(SIGINT,  aux_smash_kill);
-    signal(SIGCHLD, smash_SIGCHLD);
+    signal(SIGCHLD, smash_sigchld);
 	/************************************/
 
 	/************************************/
