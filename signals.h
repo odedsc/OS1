@@ -70,8 +70,6 @@ class Job
 
 int smash_kill(pid_t pid, int sig);
 void smash_wait(vector<job>::iterator pJob);
-
-
-#endif
+void aux_smash_kill(int sig);
 
 #endif /* SIGNALS_H_ */
