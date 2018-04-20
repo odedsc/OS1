@@ -14,6 +14,7 @@
 #include <signal.h>
 #include <iostream>
 #include <vector>
+#include <sys/time.h>
 
 using namespace std;
 
@@ -68,10 +69,9 @@ class Job
 			pid(pid),
 //			ID( Find_Min_Id()),
 			suspended(susp),
-			susp_time=0
-//		{
-//			gettimeofday(&time, NULL);
-	//	}
+		{
+			gettimeofday(&time, NULL);
+		}
 };
 
 int smash_kill(pid_t pid, int sig);
