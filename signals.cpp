@@ -32,13 +32,19 @@ void smash_wait(vector<Job>::iterator pJob){
 		{
 			if (i->pid==last_pid){
 				pJob=i;
+				if (!WIFSTOPPED(*statusPtr)){
+					jobs.erase(pJob);
+				}
+				else{
+					pJob->suspended=true;
+					time(&pJob->susp_time);
+				}
 				break;
 			}
 		}
-		if (!WIFSTOPPED(*statusPtr)){
-			jobs.erase(pJob);
-		}
+
 	}
+	currFG_PID=-1;
 }
 
 void aux_smash_kill(int sig){
@@ -54,6 +60,10 @@ void smash_sigchld(int sig){
 			if (!WIFSTOPPED(*statusPtr)){
 				jobs.erase(i);
 				i--;
+			}
+			else{
+				i->suspended=true;
+				time(&i->susp_time);
 			}
 		}
 	}
