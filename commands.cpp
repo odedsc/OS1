@@ -11,11 +11,13 @@
 #include "signals.h"
 
 using namespace std;
-
-bool Job_Sort(const Job job1, const Job job2)
+extern vector<Job> jobs;
+extern pid_t currFG_PID;
+/*bool Job_Sort(const Job job1, const Job job2)
 {
 	return job1.ID < job2.ID;
-}//********************************************
+}*/
+//********************************************
 // function name: ExeCmd
 // Description: interperts and executes built-in commands
 // Parameters: pointer to jobs, command string
@@ -55,7 +57,7 @@ int ExeCmd(vector<Job> jobs, char* lineSize, char* cmdString)
 	if (!strcmp(cmd, "cd") )
 	{
 		if (num_arg != 1) return -1;
-		else if (!strcmp(arg[1], "-"){
+		else if (!strcmp(args[1], "-")){
 			chdir("..");
 			cout << getcwd << endl;
 		}
@@ -97,16 +99,18 @@ int ExeCmd(vector<Job> jobs, char* lineSize, char* cmdString)
 	{
 		if (num_arg!=0) return -1;
 		struct timeval present;
-		sort(sort(job_stack.begin(), job_stack.end(), ID_sort));
+		int j=1;
+//		sort(sort(job_stack.begin(), job_stack.end(), ID_sort));
 		for( vector<Job>::iterator i = jobs.begin(); i != jobs.end(); ++i )
 		{
 			gettimeofday(&present, NULL);
 			time_t full_time = present.tv_sec - i->time.tv_sec;
 
-			cout << '[' << i->ID << "] " << i->job_name << " : " << i->pid << " " << full_time << " secs" << endl;
-/*			if (i->suspended == true)
+			cout << '[' << j << "] " << i->name << " : " << i->pid << " " << full_time << " secs";
+			if (i->suspended == true)
 				cout << " (Stopped)";
-			cout << endl;*/
+			cout << endl;
+			j++;
 		}
 
 	}
@@ -122,19 +126,22 @@ int ExeCmd(vector<Job> jobs, char* lineSize, char* cmdString)
 		if ((num_arg!=0) || (num_arg!=1)) return -1;
 		else if (jobs.empty()) break;
 		else if (num_arg==0){
-			cout << jobs.back()->name << endl;
+			cout << jobs.back().name << endl;
 		}
 		else if (num_arg==1){
+			int j=1;
 			for( vector<Job>::iterator i = jobs.begin(); i != jobs.end(); ++i )
 			{
-				if (i->ID==arg[1]){
+				if (j==args[1]){
 					cout << i->name << endl;
+					currFG_PID=i->pid;
 					if (i->suspended){
-						smash_kill(i->pid,SIGCONT));
+						smash_kill(i->pid,SIGCONT);
 					}
 					smash_wait(i);
 					break;
 				}
+				j++;
 			}
 		}
 	}
@@ -144,18 +151,20 @@ int ExeCmd(vector<Job> jobs, char* lineSize, char* cmdString)
 		if ((num_arg!=0) || (num_arg!=1)) return -1;
 		else if (jobs.empty()) break;
 		else if (num_arg==0){
-			cout << jobs.back()->name << endl;
+			cout << jobs.back().name << endl;
 		}
 		else if (num_arg==1){
+			int j=1;
 			for( vector<Job>::iterator i = jobs.begin(); i != jobs.end(); ++i )
 			{
-				if (i->ID==arg[1]){
+				if (j==args[1]){
 					cout << i->name << endl;
 					if (i->suspended){
-						smash_kill(i->pid,SIGCONT));
+						smash_kill(i->pid,SIGCONT);
 					}
 					break;
 				}
+				j++;
 			}
 		}
 	}
@@ -175,7 +184,7 @@ int ExeCmd(vector<Job> jobs, char* lineSize, char* cmdString)
 			int  job_id;
 			if (num_arg == 2)
 			{
-				job_id = atoi(args[1])
+				job_id = atoi(args[1]);
 			}
 			else
 			{
@@ -183,17 +192,20 @@ int ExeCmd(vector<Job> jobs, char* lineSize, char* cmdString)
 			}
 			bool job_exist = false;
 
+			int j=1;
 			for (i = jobs.begin(); i != jobs.end(); i++)
 			{
-				if (num_arg == 2 && (i->ID != job_id))
+				if (num_arg == 2 && (j != job_id))
 				{
+					j++;
 					continue;
 				}
 				job_exist = true;
-				if (smash_kill(i->pID, sig_num) == -1)
+				if (smash_kill(i->pid, sig_num) == -1)
 				{
-					cout << "smash error: > kill " << i->ID << " - cannot send signal" << endl;
+					cout << "smash error: > kill " << j << " - cannot send signal" << endl;
 				}
+				j++;
 			}
 			if (job_exist == false && num_arg == 2)
 			{
@@ -204,23 +216,25 @@ int ExeCmd(vector<Job> jobs, char* lineSize, char* cmdString)
 	/*************************************************/
 	else if (!strcmp(cmd, "quit"))
 	{
+		int j=1;
 		if ((num_arg!=0) || (num_arg!=1)) return -1;
 		if (num_arg==0) exit(0);
 		else if (num_arg==1){
-			while (!job_stack.empty())
+			while (!jobs.empty())
 			{
 				smash_kill(jobs.begin()->pid,SIGTERM);
-				cout << "[" << jobs.begin()->ID << "]" << jobs.begin()->name << " - Sending SIGTERM...";
+				cout << "[" << j << "]" << jobs.begin()->name << " - Sending SIGTERM...";
 				sleep(5);
 				int last_ID = waitpid(jobs.begin()->pid, NULL, WNOHANG);
 				if (last_ID == 0){
-					Smash_Kill(child_pID, SIGKILL);
+					smash_kill(jobs.begin()->pid, SIGKILL);
 					cout << " (5 sec passed) Sending SIGKILL... Done" << endl;
 				}
 				else {
 					cout << " Done." << endl;
 				}
 				jobs.erase(jobs.begin());
+				j++;
 			}
 
 		}
@@ -244,7 +258,7 @@ int ExeCmd(vector<Job> jobs, char* lineSize, char* cmdString)
  		ExeExternal(args, cmdString);
 	 	return 0;
 	}
-	if (illegal_cmd == TRUE)
+	if (illegal_cmd == true)
 	{
 		printf("smash error: > \"%s\"\n", cmdString);
 		return 1;
@@ -271,12 +285,13 @@ void ExeExternal(char *args[MAX_ARG], char* cmdString)
 
                 	if (execvp(const_cast<char*>(*args), const_cast<char**>(args))==-1){
                 		perror("execution failed");
-                		exit(1);
                 	}
+                	exit(1);
 
 			default:
 					jobs.push_back(Job(args[0],pID,false));
 					if (cmdString=="fg"){
+						currFG_PID=(jobs.end()-1)->pid;
 						smash_wait(jobs.end()-1);
 					}
 
