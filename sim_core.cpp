@@ -239,12 +239,12 @@ void SIM_WB()
 }
 	
 /*! SIM_CoreReset: Reset the processor core simulator machine to start new simulation
-Use this API to initialize the processor core simulator's data structures.
-The simulator machine must complete this call with these requirements met:
-- PC = 0  (entry point for a program is at address 0)
-- All the register file is cleared (all registers hold 0)
-- The value of IF is the instuction in address 0x0
-\returns 0 on success. <0 in case of initialization failure.
+  Use this API to initialize the processor core simulator's data structures.
+  The simulator machine must complete this call with these requirements met:
+  - PC = 0  (entry point for a program is at address 0)
+  - All the register file is cleared (all registers hold 0)
+  - The value of IF is the instuction in address 0x0
+  \returns 0 on success. <0 in case of initialization failure.
 */
 int SIM_CoreReset(void) {
 
@@ -273,16 +273,62 @@ int SIM_CoreReset(void) {
 }
 
 /*! SIM_CoreClkTick: Update the core simulator's state given one clock cycle.
-This function is expected to update the core pipeline given a clock cycle event.
+  This function is expected to update the core pipeline given a clock cycle event.
 */
 void SIM_CoreClkTick() {
+	//Checks about special events in this cycle:
+	if (branch_flag==1) {
+		coreState.pc = branch_add;
+		//Flush
+		EmptyCertainStage(&(coreState.pipeStageState[0])); //Empty IF
+		EmptyCertainStage(&(coreState.pipeStageState[1])); //Empty ID
+		EmptyCertainStage(&(coreState.pipeStageState[2])); //Empty EXE
+		branchTaken = false;
+	}
+
+	if (HAZARD()) {
+		if (forwarding) {
+			SIM_FORWARDING();
+		}
+		else STALL = true;
+	} else {
+		STALL = false; //Don't stall the pipe because of Data Hazard
+	}
+
+	for (int i=0; i< SIM_REGFILE_SIZE; i++) {
+		regFile_CCBefore[i] = coreState.regFIle[i];
+	}
+
+	//Do the process of each stage:
+	SIM_WB();
+	SIM_MEMORY();
+	SIM_EXECUTE();
+	SIM_DECODE();
+	SIM_Fetch();
+//	loadForwardStall = false;
 
 }
 
 /*! SIM_CoreGetState: Return the current core (pipeline) internal state
-curState: The returned current pipeline state
-The function will return the state of the pipe at the end of a cycle
+    curState: The returned current pipeline state
+    The function will return the state of the pipe at the end of a cycle
 */
 void SIM_CoreGetState(SIM_coreState *curState) {
+	curState->pc=coreState.pc-4;
+
+	for (int i=0; i< SIM_PIPELINE_DEPTH; i++) {
+		curState->pipeStageState[i] = coreState.ipeStageState[i] ;
+	}
+
+	if (split_regfile) {
+		for (int i=0; i< SIM_REGFILE_SIZE; i++) {
+			curState->regFile[i] = coreState.regFile[i];
+		}
+	}
+	else{
+		for (int i=0; i< SIM_REGFILE_SIZE; i++) {
+			curState->regFile[i] = regFile_CCBefore[i];
+		}
+	}
 }
 
