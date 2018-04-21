@@ -52,7 +52,7 @@ char lineSize[MAX_LINE_SIZE];
 
 extern pid_t currFG_PID;
 
-list<char*> history_list;
+list<string> history_list;
 
 
 
@@ -153,6 +153,8 @@ int main (int argc, char *argv[])
 
 
 		}
+
+		std::string str(lineSize);
 
 		history_list.push_front(lineSize);
 
