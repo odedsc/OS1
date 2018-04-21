@@ -11,6 +11,7 @@ bool READ; // true if there is an instruction which needs for MEM stage more the
 
 typedef struct {
     int32_t data;  // The main data of the cmd, such as ALU result for ADD, branch condition.
+    int32_t pc; 	  // The pc of this specific command (+4)
     int32_t address;  // Addresses, such as the jump address for branch, and mem address for load, store
 } StageData;
 
@@ -55,7 +56,8 @@ void EmptyCertainStage (PipeStageState* stage)
 }
 
 
-void Execute() {
+void Execute()
+{
 	if (READ) //Stall the core if waiting for data memory reading
 	{
 		return;
@@ -67,12 +69,13 @@ void Execute() {
 		loadForwardStall = false;
 		*/
 	}
-	else {
-		PipeStageState ID = core->pipeStageState[1] ;
-		PipeStageState EXE = core->pipeStageState[2] ;
+	else
+	{
+		PipeStageState ID = coreState ->pipeStageState[1] ;
+		PipeStageState EXE = coreState ->pipeStageState[2] ;
 		SIM_cmd IDcmd = ID.cmd ;
 		EXE = ID; //Move the state to the following stage.
-		int32_t dstVal = core->regFile[(IDcmd).dst];
+		int32_t dstVal = coreState ->regFile[(IDcmd).dst];
 		switch (IDcmd.opcode)
 		{
 			case (CMD_NOP):
@@ -81,19 +84,19 @@ void Execute() {
 			} break;
 			case (CMD_ADD):
 			{
-				Stages[2].mainData = (ID).src1Val + (ID).src2Val;
+				Stages[2].data = (ID).src1Val + (ID).src2Val;
 			} break;
 			case (CMD_SUB):
 			{
-				Stages[2].mainData = (ID).src1Val - (ID).src2Val;
+				Stages[2].data = (ID).src1Val - (ID).src2Val;
 			} break;
 			case (CMD_ADDI):
 			{
-				Stages[2].mainData = (ID).src1Val + (ID).src2Val;
+				Stages[2].data = (ID).src1Val + (ID).src2Val;
 			} break;
 			case (CMD_SUBI):
 			{
-				Stages[2].mainData = (ID).src1Val - (ID).src2Val;
+				Stages[2].data = (ID).src1Val - (ID).src2Val;
 			} break;
 			case (CMD_LOAD):
 			{
@@ -114,7 +117,7 @@ void Execute() {
 			case (CMD_BREQ):
 			{
 				Stages[2].address =  Stages[1].pc + dstVal;
-				Stages[2].mainData = (EXE).src1Val - (EXE).src2Val;
+				Stages[2].data = (EXE).src1Val - (EXE).src2Val;
 			} break;
 			case (CMD_HALT):{
 			} break;
@@ -123,7 +126,6 @@ void Execute() {
 		core->pipeStageState[2] = EXE ;
 	}
 }
-
 	
 /*! SIM_CoreReset: Reset the processor core simulator machine to start new simulation
 Use this API to initialize the processor core simulator's data structures.
