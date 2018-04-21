@@ -191,7 +191,51 @@ void SIM_MEMORY(){
 		default : {}
 	}
 	coreState.pipeStageState[3] = MEM ;
+}
 
+	
+void SIM_WB()
+{
+	if (!READ)
+	{
+		EmptyCertainStage(&(coreState->pipeStageState[4]));
+	}
+	else
+	{
+		PipeStageState MEM = coreState->pipeStageState[3] ;
+		PipeStageState WB = coreState->pipeStageState[4] ;
+		SIM_cmd MEMcmd = MEM.cmd ;
+		WB = MEM; //Move the state to the following stage.
+		stages[4] = stages[3];
+		switch (MEMcmd.opcode)
+		{
+			case (CMD_NOP):
+			{
+				SIM_EmptyStage(&(WB));
+			} break;
+			case (CMD_LOAD):
+			case (CMD_SUB):
+			case (CMD_ADD):
+			{
+				if ((MEMcmd).dst != 0)
+				{
+					coreState->regFile[(MEMcmd).dst] = stages[4].data;
+				}
+			} break;
+			case (CMD_HALT):{
+			} break;
+			default : {}
+		}
+		/*
+		if (loadForwardStall)
+		{
+			coreState->pipeStageState[1].src1Val = coreState->pipeStageState[3].src1Val;
+			coreState->pipeStageState[1].src2Val = coreState->pipeStageState[3].src2Val;
+			loadForwardStall = false;
+		}
+		coreState->pipeStageState[4] = WB ;
+		*/
+	}
 }
 	
 /*! SIM_CoreReset: Reset the processor core simulator machine to start new simulation
