@@ -21,6 +21,22 @@ void SIM_FETCH() {
 
 }
 
+void SIM_DECODE(){
+	if (!STALL && !READ){
+		(coreState.pipeStageState[1]).cmd=(coreState.pipeStageState[0]).cmd;
+	}
+
+	if (split_regfile){
+		(coreState.pipeStageState[1]).src1Val = coreState.regFile[((coreState.pipeStageState[1]).cmd).src1] ;
+	}
+
+	if (((coreState.pipeStageState[1]).cmd).isSrc2Imm){
+		(coreState.pipeStageState[1]).src2Val=((coreState.pipeStageState[1]).cmd).src2;
+	}
+	else{
+		(coreState.pipeStageState[1]).src2Val=coreState.regFile[((coreState.pipeStageState[1]).cmd).src2];
+}
+
 /*! SIM_CoreReset: Reset the processor core simulator machine to start new simulation
 Use this API to initialize the processor core simulator's data structures.
 The simulator machine must complete this call with these requirements met:
