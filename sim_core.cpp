@@ -8,6 +8,8 @@
 SIM_coreState coreState;
 bool STALL; // the MIPS needs Stall
 bool READ; // true if there is an instruction which needs for MEM stage more then one clock cycle
+bool branch_flag;
+int32_t branch_add;
 
 typedef struct {
     int32_t data;  // The main data of the cmd, such as ALU result for ADD, branch condition.
@@ -125,6 +127,71 @@ void Execute()
 		}
 		core->pipeStageState[2] = EXE ;
 	}
+}
+	
+void SIM_MEMORY(){
+	PipeStageState EXE = coreState.pipeStageState[2] ;
+	PipeStageState MEM = coreState.pipeStageState[3] ;
+
+	if (!READ){
+		MEM = EXE;
+		Stages[3]=Stages[2];
+	}
+	switch(MEM.cmd.opcode){
+		case (CMD_NOP):
+		{
+			EmptyCertainStage(&(MEM));
+		} break;
+		case (CMD_ADD):
+		{
+		} break;
+		case (CMD_SUB):
+		{
+		} break;
+		case (CMD_ADDI):
+		{
+		} break;
+		case (CMD_SUBI):
+		{
+		} break;
+		case (CMD_LOAD):
+		{
+			if(SIM_MemDataRead(Stages[3].address, &((Stages[3]).data)) == -1) {
+				READ=true;
+			}
+			else{
+				READ=false;
+			}
+		} break;
+		case (CMD_STORE):
+		{
+			SIM_MemDataWrite(Stages[3].address, (EXE).src1Val);
+		} break;
+		case (CMD_BR):
+		{
+			branch_add = Stages[3].address;
+			branch_flag = true;
+		} break;
+		case (CMD_BRNEQ):
+		{
+			if ((stages[3]).data != 0) {
+				branch_add = Stages[3].address;
+				branch_flag = true;
+			}
+		} break;
+		case (CMD_BREQ):
+		{
+			if ((stages[3]).data != 0) {
+				branch_add = Stages[3].address;
+				branch_flag = true;
+			}
+		} break;
+		case (CMD_HALT):{
+		} break;
+		default : {}
+	}
+	coreState.pipeStageState[3] = MEM ;
+
 }
 	
 /*! SIM_CoreReset: Reset the processor core simulator machine to start new simulation
