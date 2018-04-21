@@ -247,6 +247,29 @@ The simulator machine must complete this call with these requirements met:
 \returns 0 on success. <0 in case of initialization failure.
 */
 int SIM_CoreReset(void) {
+
+	for (int i=0; i< SIM_REGFILE_SIZE; i++) {
+		core->regFile[i] = 0;
+	}
+
+	for (int i=0; i< SIM_PIPELINE_DEPTH; i++) {
+		EmptyCertainStage(&(coreState.pipeStageState[i]));
+		States[i].address = 0;
+		States[i].pc = 0;
+		States[i].data = 0;
+	}
+
+
+
+	coreState->pc = 0;
+	READ = false;
+	STALL = false;
+	branch_flag = false;
+	branch_add = 0;
+
+	SIM_FETCH();
+
+	return 0;
 }
 
 /*! SIM_CoreClkTick: Update the core simulator's state given one clock cycle.
