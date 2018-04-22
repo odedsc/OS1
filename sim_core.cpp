@@ -6,27 +6,30 @@
 /* globals */
 
 SIM_coreState coreState;
-bool STALL; // the MIPS needs Stall
+bool STALL; // the MIPS needs Stall one cycle
 bool READ; // true if there is an instruction which needs for MEM stage more then one clock cycle
-bool branch_flag;
-int32_t branch_add;
+bool branch_flag; // true if branch is the current cmd
+int32_t branch_add; // the address the mips needs to jump to
+int32_t regFile_CCBefore[SIM_REGFILE_SIZE];
 bool LOAD_STALL;
 
 typedef struct {
-    int32_t data;  // The main data of the cmd, such as ALU result for ADD, branch condition.
-    int32_t pc; 	  // The pc of this specific command (+4)
-    int32_t address;  // Addresses, such as the jump address for branch, and mem address for load, store
+    int32_t data;  // the ALU result
+    int32_t pc; 	  // The pc of cmd
+    int32_t address;  // address that needs to be kept for cmds like branch
 } StageData;
 
-StageData Stages[SIM_PIPELINE_DEPTH]; // this array is used to store the MidData of each stage in the pipeline
-		   /*implementation of the 5 stages in pipeline MIPS processor
-		   */
+StageData Stages[SIM_PIPELINE_DEPTH]; // stores the relevant data for each stage
+
+/*implementation of the 5 stages in pipeline MIPS processor
+  */
 
 void SIM_FETCH() {
 	if (!STALL && !READ) {
 		SIM_MemInstRead(coreState.pc, &(coreState.pipeStageState[0]).cmd);
 		(coreState.pipeStageState[0]).src1Val = 0, (coreState.pipeStageState[0]).src2Val = 0;
 		coreState.pc = coreState.pc + 4;
+		Stages[0].pc=coreState.pc;
 	}
 
 }
@@ -34,10 +37,14 @@ void SIM_FETCH() {
 void SIM_DECODE(){
 	if (!STALL && !READ){
 		(coreState.pipeStageState[1]).cmd=(coreState.pipeStageState[0]).cmd;
+		stages[1]=stages[0];
 	}
 
 	if (split_regfile){
-		(coreState.pipeStageState[1]).src1Val = coreState.regFile[((coreState.pipeStageState[1]).cmd).src1] ;
+		(coreState.pipeStageState[1]).src1Val = coreState.regFile[((coreState.pipeStageState[1]).cmd).src1];
+	}
+	else{
+		(coreState.pipeStageState[1]).src1Val = regFile_CCBefore[((coreState.pipeStageState[1]).cmd).src1];
 	}
 
 	if (((coreState.pipeStageState[1]).cmd).isSrc2Imm){
@@ -46,8 +53,9 @@ void SIM_DECODE(){
 	else{
 		(coreState.pipeStageState[1]).src2Val=coreState.regFile[((coreState.pipeStageState[1]).cmd).src2];
 }
-	
-void EmptyCertainStage (PipeStageState* stage)
+
+
+void EmptyCertainStage(PipeStageState* stage)
 {
 	stage->src1Val = 0;
 	stage->src2Val = 0;
@@ -59,9 +67,9 @@ void EmptyCertainStage (PipeStageState* stage)
 }
 
 
-void Execute()
+void SIM_EXECUTE()
 {
-	if (READ) //Stall the core if waiting for data memory reading
+	if (READ)
 	{
 		return;
 	}
@@ -72,12 +80,11 @@ void Execute()
 	}
 	else
 	{
-		PipeStageState ID = coreState ->pipeStageState[1] ;
-		PipeStageState EXE = coreState ->pipeStageState[2] ;
-		SIM_cmd IDcmd = ID.cmd ;
-		EXE = ID; //Move the state to the following stage.
-		int32_t dstVal = coreState ->regFile[(IDcmd).dst];
-		switch (IDcmd.opcode)
+		PipeStageState ID = coreState.pipeStageState[1] ;
+		PipeStageState EXE = coreState.pipeStageState[2] ;
+		EXE = ID;
+		int32_t dstVal = coreState ->regFile[(ID.cmd).dst];
+		switch ((ID.cmd).opcode)
 		{
 			case (CMD_NOP):
 			{
@@ -125,9 +132,10 @@ void Execute()
 			default : {}
 		}
 		core->pipeStageState[2] = EXE ;
+		Stages[2].pc=Stages[1].pc;
 	}
 }
-	
+
 void SIM_MEMORY(){
 	PipeStageState EXE = coreState.pipeStageState[2] ;
 	PipeStageState MEM = coreState.pipeStageState[3] ;
@@ -192,21 +200,21 @@ void SIM_MEMORY(){
 	coreState.pipeStageState[3] = MEM ;
 }
 
-	
+
 void SIM_WB()
 {
 	if (!READ)
 	{
-		EmptyCertainStage(&(coreState->pipeStageState[4]));
+		EmptyCertainStage(&(coreState.pipeStageState[4]));
 	}
 	else
 	{
-		PipeStageState MEM = coreState->pipeStageState[3] ;
-		PipeStageState WB = coreState->pipeStageState[4] ;
-		SIM_cmd MEMcmd = MEM.cmd ;
+		PipeStageState MEM = coreState.pipeStageState[3] ;
+		PipeStageState WB = coreState.pipeStageState[4] ;
+//		SIM_cmd MEMcmd = MEM.cmd ;
 		WB = MEM; //Move the state to the following stage.
 		stages[4] = stages[3];
-		switch (MEMcmd.opcode)
+		switch ((MEM.cmd).opcode)
 		{
 			case (CMD_NOP):
 			{
@@ -225,16 +233,18 @@ void SIM_WB()
 			} break;
 			default : {}
 		}
+
 		if (LOAD_STALL)
 		{
-			coreState->pipeStageState[1].src1Val = coreState->pipeStageState[3].src1Val;
-			coreState->pipeStageState[1].src2Val = coreState->pipeStageState[3].src2Val;
+			coreState.pipeStageState[1].src1Val = coreState.pipeStageState[3].src1Val;
+			coreState.pipeStageState[1].src2Val = coreState.pipeStageState[3].src2Val;
 			LOAD_STALL = false;
 		}
-		coreState->pipeStageState[4] = WB ;
+		coreState.pipeStageState[4] = WB ;
+
 	}
 }
-	
+
 /*! SIM_CoreReset: Reset the processor core simulator machine to start new simulation
   Use this API to initialize the processor core simulator's data structures.
   The simulator machine must complete this call with these requirements met:
@@ -296,8 +306,7 @@ bool HAZARD_CHECK(){
 	return false;
 }
 
-
-void Forwarding () {
+void Forwarding(){
 	//trying to figure out which kind of forwarding is needed forwarding from EXE stage if EX/MEM.RegisterRd = ID/EX.RegisterRs &&  EX/MEM.RegisterRd = ID/EX.RegisterRt then forward
 
 		if (coreState->pipeStageState[1].cmd.src1 == coreState->pipeStageState[2].cmd.dst
@@ -327,7 +336,6 @@ void Forwarding () {
 	return;
 }
 
-	
 /*! SIM_CoreClkTick: Update the core simulator's state given one clock cycle.
   This function is expected to update the core pipeline given a clock cycle event.
 */
@@ -369,8 +377,7 @@ void SIM_CoreClkTick() {
     curState: The returned current pipeline state
     The function will return the state of the pipe at the end of a cycle
 */
-void SIM_CoreGetState(SIM_coreState *curState)
-{
+void SIM_CoreGetState(SIM_coreState *curState) {
 	curState->pc=coreState.pc-4;
 
 	for (int i=0; i< SIM_PIPELINE_DEPTH; i++) {
@@ -388,4 +395,11 @@ void SIM_CoreGetState(SIM_coreState *curState)
 		}
 	}
 }
+ *
+ *  Created on: Apr 22, 2018
+ *      Author: compm
+ */
+
+
+
 
