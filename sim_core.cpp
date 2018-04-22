@@ -10,6 +10,7 @@ bool STALL; // the MIPS needs Stall
 bool READ; // true if there is an instruction which needs for MEM stage more then one clock cycle
 bool branch_flag;
 int32_t branch_add;
+bool LOAD_STALL;
 
 typedef struct {
     int32_t data;  // The main data of the cmd, such as ALU result for ADD, branch condition.
@@ -67,9 +68,7 @@ void Execute()
 	if(STALL)
 	{
 		EmptyCertainStage(&(core->pipeStageState[2]));
-		/*
-		loadForwardStall = false;
-		*/
+		LOAD_STALL = false;
 	}
 	else
 	{
@@ -226,15 +225,13 @@ void SIM_WB()
 			} break;
 			default : {}
 		}
-		/*
-		if (loadForwardStall)
+		if (LOAD_STALL)
 		{
 			coreState->pipeStageState[1].src1Val = coreState->pipeStageState[3].src1Val;
 			coreState->pipeStageState[1].src2Val = coreState->pipeStageState[3].src2Val;
-			loadForwardStall = false;
+			LOAD_STALL = false;
 		}
 		coreState->pipeStageState[4] = WB ;
-		*/
 	}
 }
 	
@@ -299,6 +296,37 @@ bool HAZARD_CHECK(){
 	return false;
 }
 
+
+void Forwarding () {
+	//trying to figure out which kind of forwarding is needed forwarding from EXE stage if EX/MEM.RegisterRd = ID/EX.RegisterRs &&  EX/MEM.RegisterRd = ID/EX.RegisterRt then forward
+
+		if (coreState->pipeStageState[1].cmd.src1 == coreState->pipeStageState[2].cmd.dst
+				|| coreState->pipeStageState[1].cmd.src2 == coreState->pipeStageState[2].cmd.dst )
+		{
+			coreState->pipeStageState[1].src1Val = coreState->pipeStageState[2].src1Val;
+			coreState->pipeStageState[1].src2Val = coreState->pipeStageState[2].src2Val;
+		}
+	//forwarding from MEM (MEM/WB.RegWrite = 1) and MEM/WB.RegisterRd = ID/EX.RegisterRs and (EX/MEM.RegisterRd != ID/EX.RegisterRs or EX/MEM.RegWrite = 0)
+		if (coreState->pipeStageState[3].cmd.dst == coreState->pipeStageState[2].cmd.src1 &&
+				coreState->pipeStageState[3].cmd.dst != coreState->pipeStageState[1].cmd.src1 &&
+				(coreState->pipeStageState[3].cmd.dst == coreState->pipeStageState[2].cmd.src2 &&
+						coreState->pipeStageState[3].cmd.dst != coreState->pipeStageState[1].cmd.src2))
+		{
+			coreState->pipeStageState[1].src1Val = coreState->pipeStageState[3].src1Val;
+			coreState->pipeStageState[1].src2Val = coreState->pipeStageState[3].src2Val;
+		}
+	//cases when can't forward and a stall is needed forwarding from WB to EXE
+	if (coreState->pipeStageState[MEMORY].cmd.opcode == CMD_LOAD)
+	{
+		if ((coreState->pipeStageState[DECODE].cmd.dst == coreState->pipeStageState[MEMORY].cmd.src1) ||
+				(coreState->pipeStageState[DECODE].cmd.dst == coreState->pipeStageState[MEMORY].cmd.src2))
+		{
+			LOAD_STALL = true;
+		}
+	}
+	return;
+}
+
 	
 /*! SIM_CoreClkTick: Update the core simulator's state given one clock cycle.
   This function is expected to update the core pipeline given a clock cycle event.
@@ -333,7 +361,7 @@ void SIM_CoreClkTick() {
 	SIM_EXECUTE();
 	SIM_DECODE();
 	SIM_Fetch();
-//	loadForwardStall = false;
+	LOAD_STALL = false;
 
 }
 
@@ -341,7 +369,8 @@ void SIM_CoreClkTick() {
     curState: The returned current pipeline state
     The function will return the state of the pipe at the end of a cycle
 */
-void SIM_CoreGetState(SIM_coreState *curState) {
+void SIM_CoreGetState(SIM_coreState *curState)
+{
 	curState->pc=coreState.pc-4;
 
 	for (int i=0; i< SIM_PIPELINE_DEPTH; i++) {
