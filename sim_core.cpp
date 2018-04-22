@@ -37,7 +37,7 @@ void SIM_FETCH() {
 void SIM_DECODE(){
 	if (!STALL && !READ){
 		(coreState.pipeStageState[1]).cmd=(coreState.pipeStageState[0]).cmd;
-		stages[1]=stages[0];
+		Stages[1]=Stages[0];
 	}
 
 	if (split_regfile){
@@ -52,6 +52,7 @@ void SIM_DECODE(){
 	}
 	else{
 		(coreState.pipeStageState[1]).src2Val=coreState.regFile[((coreState.pipeStageState[1]).cmd).src2];
+	}
 }
 
 
@@ -59,7 +60,7 @@ void EmptyCertainStage(PipeStageState* stage)
 {
 	stage->src1Val = 0;
 	stage->src2Val = 0;
-	(&(stage->cmd))->opcode = 0;
+	(&(stage->cmd))->opcode = CMD_NOP;
 	(&(stage->cmd))->src1 = 0;
 	(&(stage->cmd))->src2 = 0;
 	(&(stage->cmd))->isSrc2Imm = 0;
@@ -75,7 +76,7 @@ void SIM_EXECUTE()
 	}
 	if(STALL)
 	{
-		EmptyCertainStage(&(core->pipeStageState[2]));
+		EmptyCertainStage(&(coreState.pipeStageState[2]));
 		LOAD_STALL = false;
 	}
 	else
@@ -83,7 +84,7 @@ void SIM_EXECUTE()
 		PipeStageState ID = coreState.pipeStageState[1] ;
 		PipeStageState EXE = coreState.pipeStageState[2] ;
 		EXE = ID;
-		int32_t dstVal = coreState ->regFile[(ID.cmd).dst];
+		int32_t dstVal = coreState.regFile[(ID.cmd).dst];
 		switch ((ID.cmd).opcode)
 		{
 			case (CMD_NOP):
@@ -131,7 +132,7 @@ void SIM_EXECUTE()
 			} break;
 			default : {}
 		}
-		core->pipeStageState[2] = EXE ;
+		coreState.pipeStageState[2] = EXE ;
 		Stages[2].pc=Stages[1].pc;
 	}
 }
@@ -181,14 +182,14 @@ void SIM_MEMORY(){
 		} break;
 		case (CMD_BRNEQ):
 		{
-			if ((stages[3]).data != 0) {
+			if ((Stages[3]).data != 0) {
 				branch_add = Stages[3].address;
 				branch_flag = true;
 			}
 		} break;
 		case (CMD_BREQ):
 		{
-			if ((stages[3]).data != 0) {
+			if ((Stages[3]).data != 0) {
 				branch_add = Stages[3].address;
 				branch_flag = true;
 			}
@@ -213,20 +214,20 @@ void SIM_WB()
 		PipeStageState WB = coreState.pipeStageState[4] ;
 //		SIM_cmd MEMcmd = MEM.cmd ;
 		WB = MEM; //Move the state to the following stage.
-		stages[4] = stages[3];
+		Stages[4] = Stages[3];
 		switch ((MEM.cmd).opcode)
 		{
 			case (CMD_NOP):
 			{
-				SIM_EmptyStage(&(WB));
+				EmptyCertainStage(&(WB));
 			} break;
 			case (CMD_LOAD):
 			case (CMD_SUB):
 			case (CMD_ADD):
 			{
-				if ((MEMcmd).dst != 0)
+				if ((MEM.cmd).dst != 0)
 				{
-					coreState->regFile[(MEMcmd).dst] = stages[4].data;
+					coreState.regFile[(MEM.cmd).dst] = Stages[4].data;
 				}
 			} break;
 			case (CMD_HALT):{
@@ -256,19 +257,19 @@ void SIM_WB()
 int SIM_CoreReset(void) {
 
 	for (int i=0; i< SIM_REGFILE_SIZE; i++) {
-		core->regFile[i] = 0;
+		coreState.regFile[i] = 0;
 	}
 
 	for (int i=0; i< SIM_PIPELINE_DEPTH; i++) {
 		EmptyCertainStage(&(coreState.pipeStageState[i]));
-		States[i].address = 0;
-		States[i].pc = 0;
-		States[i].data = 0;
+		Stages[i].address = 0;
+		Stages[i].pc = 0;
+		Stages[i].data = 0;
 	}
 
 
 
-	coreState->pc = 0;
+	coreState.pc = 0;
 	READ = false;
 	STALL = false;
 	branch_flag = false;
@@ -283,15 +284,15 @@ bool HAZARD_CHECK(){
 	SIM_cmd check_cmd=coreState.pipeStageState[1].cmd;
 	for (int i=2; i<SIM_PIPELINE_DEPTH; i++){
 		if (split_regfile==true && i==SIM_PIPELINE_DEPTH-2) break;
-		SIM_CMD curr_cmd=(coreState.pipeStage[i]).cmd;
+		SIM_cmd curr_cmd=(coreState.pipeStageState[i]).cmd;
 		if ((curr_cmd.opcode == CMD_ADD)
 				|| (curr_cmd.opcode == CMD_SUB)
 				|| (curr_cmd.opcode == CMD_LOAD)
 				|| (curr_cmd.opcode == CMD_SUBI)
 				|| (curr_cmd.opcode == CMD_ADDI)){
-			if ((curr_cmd.dst==check_cmd.src1 && check_cmd.srce!=0)
+			if ((curr_cmd.dst==check_cmd.src1 && check_cmd.src1!=0)
 					|| (curr_cmd.dst==check_cmd.src2 && check_cmd.src2!=0 && check_cmd.isSrc2Imm)){
-				if (!((check_cmd.opcode==CMD_BR) || (check_cmd.opcode==CMD_NOP) || (check_cmd.opcode==CMD_HALT)){
+				if (!((check_cmd.opcode==CMD_BR) || (check_cmd.opcode==CMD_NOP) || (check_cmd.opcode==CMD_HALT))){
 					return true;
 				}
 			}
@@ -309,26 +310,26 @@ bool HAZARD_CHECK(){
 void Forwarding(){
 	//trying to figure out which kind of forwarding is needed forwarding from EXE stage if EX/MEM.RegisterRd = ID/EX.RegisterRs &&  EX/MEM.RegisterRd = ID/EX.RegisterRt then forward
 
-		if (coreState->pipeStageState[1].cmd.src1 == coreState->pipeStageState[2].cmd.dst
-				|| coreState->pipeStageState[1].cmd.src2 == coreState->pipeStageState[2].cmd.dst )
+		if (coreState.pipeStageState[1].cmd.src1 == coreState.pipeStageState[2].cmd.dst
+				|| coreState.pipeStageState[1].cmd.src2 == coreState.pipeStageState[2].cmd.dst )
 		{
-			coreState->pipeStageState[1].src1Val = coreState->pipeStageState[2].src1Val;
-			coreState->pipeStageState[1].src2Val = coreState->pipeStageState[2].src2Val;
+			coreState.pipeStageState[1].src1Val = coreState.pipeStageState[2].src1Val;
+			coreState.pipeStageState[1].src2Val = coreState.pipeStageState[2].src2Val;
 		}
 	//forwarding from MEM (MEM/WB.RegWrite = 1) and MEM/WB.RegisterRd = ID/EX.RegisterRs and (EX/MEM.RegisterRd != ID/EX.RegisterRs or EX/MEM.RegWrite = 0)
-		if (coreState->pipeStageState[3].cmd.dst == coreState->pipeStageState[2].cmd.src1 &&
-				coreState->pipeStageState[3].cmd.dst != coreState->pipeStageState[1].cmd.src1 &&
-				(coreState->pipeStageState[3].cmd.dst == coreState->pipeStageState[2].cmd.src2 &&
-						coreState->pipeStageState[3].cmd.dst != coreState->pipeStageState[1].cmd.src2))
+		if (coreState.pipeStageState[3].cmd.dst == coreState.pipeStageState[2].cmd.src1 &&
+				coreState.pipeStageState[3].cmd.dst != coreState.pipeStageState[1].cmd.src1 &&
+				(coreState.pipeStageState[3].cmd.dst == coreState.pipeStageState[2].cmd.src2 &&
+						coreState.pipeStageState[3].cmd.dst != coreState.pipeStageState[1].cmd.src2))
 		{
-			coreState->pipeStageState[1].src1Val = coreState->pipeStageState[3].src1Val;
-			coreState->pipeStageState[1].src2Val = coreState->pipeStageState[3].src2Val;
+			coreState.pipeStageState[1].src1Val = coreState.pipeStageState[3].src1Val;
+			coreState.pipeStageState[1].src2Val = coreState.pipeStageState[3].src2Val;
 		}
 	//cases when can't forward and a stall is needed forwarding from WB to EXE
-	if (coreState->pipeStageState[MEMORY].cmd.opcode == CMD_LOAD)
+	if (coreState.pipeStageState[MEMORY].cmd.opcode == CMD_LOAD)
 	{
-		if ((coreState->pipeStageState[DECODE].cmd.dst == coreState->pipeStageState[MEMORY].cmd.src1) ||
-				(coreState->pipeStageState[DECODE].cmd.dst == coreState->pipeStageState[MEMORY].cmd.src2))
+		if ((coreState.pipeStageState[DECODE].cmd.dst == coreState.pipeStageState[MEMORY].cmd.src1) ||
+				(coreState.pipeStageState[DECODE].cmd.dst == coreState.pipeStageState[MEMORY].cmd.src2))
 		{
 			LOAD_STALL = true;
 		}
@@ -347,12 +348,12 @@ void SIM_CoreClkTick() {
 		EmptyCertainStage(&(coreState.pipeStageState[0])); //Empty IF
 		EmptyCertainStage(&(coreState.pipeStageState[1])); //Empty ID
 		EmptyCertainStage(&(coreState.pipeStageState[2])); //Empty EXE
-		branchTaken = false;
+		branch_flag = false;
 	}
 
 	if (HAZARD_CHECK()) {
 		if (forwarding) {
-			SIM_FORWARDING();
+			Forwarding();
 		}
 		else STALL = true;
 	} else {
@@ -360,7 +361,7 @@ void SIM_CoreClkTick() {
 	}
 
 	for (int i=0; i< SIM_REGFILE_SIZE; i++) {
-		regFile_CCBefore[i] = coreState.regFIle[i];
+		regFile_CCBefore[i] = coreState.regFile[i];
 	}
 
 	//Do the process of each stage:
@@ -368,7 +369,7 @@ void SIM_CoreClkTick() {
 	SIM_MEMORY();
 	SIM_EXECUTE();
 	SIM_DECODE();
-	SIM_Fetch();
+	SIM_FETCH();
 	LOAD_STALL = false;
 
 }
@@ -381,7 +382,7 @@ void SIM_CoreGetState(SIM_coreState *curState) {
 	curState->pc=coreState.pc-4;
 
 	for (int i=0; i< SIM_PIPELINE_DEPTH; i++) {
-		curState->pipeStageState[i] = coreState.ipeStageState[i] ;
+		curState->pipeStageState[i] = coreState.pipeStageState[i] ;
 	}
 
 	if (split_regfile) {
@@ -395,10 +396,6 @@ void SIM_CoreGetState(SIM_coreState *curState) {
 		}
 	}
 }
- *
- *  Created on: Apr 22, 2018
- *      Author: compm
- */
 
 
 
