@@ -272,6 +272,34 @@ int SIM_CoreReset(void) {
 	return 0;
 }
 
+bool HAZARD_CHECK(){
+	SIM_cmd check_cmd=coreState.pipeStageState[1].cmd;
+	for (int i=2; i<SIM_PIPELINE_DEPTH; i++){
+		if (split_regfile==true && i==SIM_PIPELINE_DEPTH-2) break;
+		SIM_CMD curr_cmd=(coreState.pipeStage[i]).cmd;
+		if ((curr_cmd.opcode == CMD_ADD)
+				|| (curr_cmd.opcode == CMD_SUB)
+				|| (curr_cmd.opcode == CMD_LOAD)
+				|| (curr_cmd.opcode == CMD_SUBI)
+				|| (curr_cmd.opcode == CMD_ADDI)){
+			if ((curr_cmd.dst==check_cmd.src1 && check_cmd.srce!=0)
+					|| (curr_cmd.dst==check_cmd.src2 && check_cmd.src2!=0 && check_cmd.isSrc2Imm)){
+				if (!((check_cmd.opcode==CMD_BR) || (check_cmd.opcode==CMD_NOP) || (check_cmd.opcode==CMD_HALT)){
+					return true;
+				}
+			}
+			else if(curr_cmd.dst==check_cmd.dst){
+				if ((check_cmd.opcode==CMD_BR) || (check_cmd.opcode==CMD_BREQ) || (check_cmd.opcode==CMD_BRNEQ)){
+					return true;
+				}
+			}
+		}
+
+	}
+	return false;
+}
+
+	
 /*! SIM_CoreClkTick: Update the core simulator's state given one clock cycle.
   This function is expected to update the core pipeline given a clock cycle event.
 */
@@ -286,7 +314,7 @@ void SIM_CoreClkTick() {
 		branchTaken = false;
 	}
 
-	if (HAZARD()) {
+	if (HAZARD_CHECK()) {
 		if (forwarding) {
 			SIM_FORWARDING();
 		}
