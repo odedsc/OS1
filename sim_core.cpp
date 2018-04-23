@@ -421,4 +421,3 @@ void SIM_CoreGetState(SIM_coreState *curState) {
 
 
 
-
