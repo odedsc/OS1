@@ -52,7 +52,13 @@ void SIM_DECODE(){
 		(coreState.pipeStageState[1]).src2Val=((coreState.pipeStageState[1]).cmd).src2;
 	}
 	else{
-		(coreState.pipeStageState[1]).src2Val=coreState.regFile[((coreState.pipeStageState[1]).cmd).src2];
+		if (split_regfile){
+			(coreState.pipeStageState[1]).src2Val=coreState.regFile[((coreState.pipeStageState[1]).cmd).src2];
+		}
+		else{
+			(coreState.pipeStageState[1]).src2Val = regFile_CCBefore[((coreState.pipeStageState[1]).cmd).src2];
+
+		}
 	}
 }
 
@@ -170,6 +176,7 @@ void SIM_MEMORY(){
 			}
 			else{
 				READ_NEXT=false;
+			//	printf ("I'm here at READ_NEXT=false/n");
 			}
 		} break;
 		case (CMD_STORE):
@@ -190,7 +197,7 @@ void SIM_MEMORY(){
 		} break;
 		case (CMD_BREQ):
 		{
-			if ((Stages[3]).data != 0) {
+			if ((Stages[3]).data == 0) {
 				branch_add = Stages[3].address;
 				branch_flag = true;
 			}
@@ -287,16 +294,19 @@ int SIM_CoreReset(void) {
 bool HAZARD_CHECK(){
 	SIM_cmd check_cmd=coreState.pipeStageState[1].cmd;
 	for (int i=2; i<SIM_PIPELINE_DEPTH; i++){
-		if (split_regfile==true && i==SIM_PIPELINE_DEPTH-2) break;
+		if (split_regfile==true && i==SIM_PIPELINE_DEPTH-1) break;
 		SIM_cmd curr_cmd=(coreState.pipeStageState[i]).cmd;
+		//printf("check data hazard0");
 		if ((curr_cmd.opcode == CMD_ADD)
 				|| (curr_cmd.opcode == CMD_SUB)
 				|| (curr_cmd.opcode == CMD_LOAD)
 				|| (curr_cmd.opcode == CMD_SUBI)
 				|| (curr_cmd.opcode == CMD_ADDI)){
 			if ((curr_cmd.dst==check_cmd.src1 && check_cmd.src1!=0)
-					|| (curr_cmd.dst==check_cmd.src2 && check_cmd.src2!=0 && check_cmd.isSrc2Imm)){
+					|| (curr_cmd.dst==check_cmd.src2 && check_cmd.src2!=0 && check_cmd.isSrc2Imm==0)){
+			//	printf("before LOAD hazard1");
 				if (!((check_cmd.opcode==CMD_BR) || (check_cmd.opcode==CMD_NOP) || (check_cmd.opcode==CMD_HALT))){
+			//		printf("before LOAD hazard2");
 					return true;
 				}
 			}
@@ -362,6 +372,7 @@ void SIM_CoreClkTick() {
 		else STALL = true;
 	} else {
 		STALL = false; //Don't stall the pipe because of Data Hazard
+	//	printf ("I'm here at STALL=false/n");
 	}
 
 	for (int i=0; i< SIM_REGFILE_SIZE; i++) {
@@ -373,6 +384,7 @@ void SIM_CoreClkTick() {
 	}
 	else{
 		READ=false;
+	//	printf ("I'm here at READ=false/n");
 	}
 	//Do the process of each stage:
 	SIM_WB();
