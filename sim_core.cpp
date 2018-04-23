@@ -12,6 +12,7 @@ bool branch_flag; // true if branch is the current cmd
 int32_t branch_add; // the address the mips needs to jump to
 int32_t regFile_CCBefore[SIM_REGFILE_SIZE];
 bool LOAD_STALL;
+bool READ_NEXT;
 
 typedef struct {
     int32_t data;  // the ALU result
@@ -25,7 +26,7 @@ StageData Stages[SIM_PIPELINE_DEPTH]; // stores the relevant data for each stage
   */
 
 void SIM_FETCH() {
-	if (!STALL && !READ) {
+	if (STALL==false && READ==false) {
 		SIM_MemInstRead(coreState.pc, &(coreState.pipeStageState[0]).cmd);
 		(coreState.pipeStageState[0]).src1Val = 0, (coreState.pipeStageState[0]).src2Val = 0;
 		coreState.pc = coreState.pc + 4;
@@ -165,10 +166,10 @@ void SIM_MEMORY(){
 		case (CMD_LOAD):
 		{
 			if(SIM_MemDataRead(Stages[3].address, &((Stages[3]).data)) == -1) {
-				READ=true;
+				READ_NEXT=true;
 			}
 			else{
-				READ=false;
+				READ_NEXT=false;
 			}
 		} break;
 		case (CMD_STORE):
@@ -204,7 +205,7 @@ void SIM_MEMORY(){
 
 void SIM_WB()
 {
-	if (!READ)
+	if (READ)
 	{
 		EmptyCertainStage(&(coreState.pipeStageState[4]));
 	}
@@ -223,6 +224,8 @@ void SIM_WB()
 			} break;
 			case (CMD_LOAD):
 			case (CMD_SUB):
+			case (CMD_SUBI):
+			case (CMD_ADDI):
 			case (CMD_ADD):
 			{
 				if ((MEM.cmd).dst != 0)
@@ -271,6 +274,7 @@ int SIM_CoreReset(void) {
 
 	coreState.pc = 0;
 	READ = false;
+	READ_NEXT=false;
 	STALL = false;
 	branch_flag = false;
 	branch_add = 0;
@@ -342,7 +346,7 @@ void Forwarding(){
 */
 void SIM_CoreClkTick() {
 	//Checks about special events in this cycle:
-	if (branch_flag==1) {
+	if (branch_flag==true) {
 		coreState.pc = branch_add;
 		//Flush
 		EmptyCertainStage(&(coreState.pipeStageState[0])); //Empty IF
@@ -364,6 +368,12 @@ void SIM_CoreClkTick() {
 		regFile_CCBefore[i] = coreState.regFile[i];
 	}
 
+	if (READ_NEXT){
+		READ=true;
+	}
+	else{
+		READ=false;
+	}
 	//Do the process of each stage:
 	SIM_WB();
 	SIM_MEMORY();
