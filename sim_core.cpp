@@ -83,6 +83,7 @@ void SIM_EXECUTE()
 	}
 	if(STALL)
 	{
+		//printf("i'm here at stall\n");
 		EmptyCertainStage(&(coreState.pipeStageState[2]));
 		LOAD_STALL = false;
 	}
@@ -245,12 +246,12 @@ void SIM_WB()
 			default : {}
 		}
 
-		if (LOAD_STALL)
+/*		if (LOAD_STALL)
 		{
 			coreState.pipeStageState[1].src1Val = coreState.pipeStageState[3].src1Val;
 			coreState.pipeStageState[1].src2Val = coreState.pipeStageState[3].src2Val;
 			LOAD_STALL = false;
-		}
+		}*/
 		coreState.pipeStageState[4] = WB ;
 
 	}
@@ -324,13 +325,102 @@ bool HAZARD_CHECK(){
 void Forwarding(){
 	//trying to figure out which kind of forwarding is needed forwarding from EXE stage if EX/MEM.RegisterRd = ID/EX.RegisterRs &&  EX/MEM.RegisterRd = ID/EX.RegisterRt then forward
 
-		if (coreState.pipeStageState[1].cmd.src1 == coreState.pipeStageState[2].cmd.dst
+/*		if (coreState.pipeStageState[1].cmd.src1 == coreState.pipeStageState[2].cmd.dst
 				|| coreState.pipeStageState[1].cmd.src2 == coreState.pipeStageState[2].cmd.dst )
 		{
 			coreState.pipeStageState[1].src1Val = coreState.pipeStageState[2].src1Val;
 			coreState.pipeStageState[1].src2Val = coreState.pipeStageState[2].src2Val;
+		}*/
+	for (int i=2; i < SIM_PIPELINE_DEPTH; i++){
+		if ((coreState.pipeStageState[i].cmd.opcode==CMD_ADD) || (coreState.pipeStageState[i].cmd.opcode==CMD_ADDI)
+				|| (coreState.pipeStageState[i].cmd.opcode==CMD_SUB) || (coreState.pipeStageState[i].cmd.opcode==CMD_SUBI)){
+			if (coreState.pipeStageState[1].cmd.src1 == coreState.pipeStageState[i].cmd.dst
+					|| coreState.pipeStageState[1].cmd.src2 == coreState.pipeStageState[i].cmd.dst){
+
+				if (coreState.pipeStageState[1].cmd.src1 == coreState.pipeStageState[i].cmd.dst){
+					coreState.pipeStageState[1].src1Val = Stages[2].data;
+				}
+
+				if (coreState.pipeStageState[1].cmd.src2 == coreState.pipeStageState[i].cmd.dst){
+					coreState.pipeStageState[1].src2Val = Stages[2].data;
+				}
+				break;
+			}
 		}
-	//forwarding from MEM (MEM/WB.RegWrite = 1) and MEM/WB.RegisterRd = ID/EX.RegisterRs and (EX/MEM.RegisterRd != ID/EX.RegisterRs or EX/MEM.RegWrite = 0)
+	}
+
+	STALL=false;
+
+	for (int i=2; i < SIM_PIPELINE_DEPTH; i++){
+
+		if (coreState.pipeStageState[i].cmd.opcode==CMD_LOAD){
+			if (coreState.pipeStageState[1].cmd.src1 == coreState.pipeStageState[i].cmd.dst
+					|| coreState.pipeStageState[1].cmd.src2 == coreState.pipeStageState[i].cmd.dst){
+			if (i==SIM_PIPELINE_DEPTH-1){
+				if (coreState.pipeStageState[1].cmd.src1 == coreState.pipeStageState[i].cmd.dst){
+					coreState.pipeStageState[1].src1Val = Stages[4].data;
+				}
+				if (coreState.pipeStageState[1].cmd.src2 == coreState.pipeStageState[i].cmd.dst){
+					coreState.pipeStageState[1].src2Val = Stages[4].data;
+				}
+				STALL=false;
+			}
+			if (i==SIM_PIPELINE_DEPTH-2 && !READ){
+				if (coreState.pipeStageState[1].cmd.src1 == coreState.pipeStageState[i].cmd.dst){
+					coreState.pipeStageState[1].src1Val = Stages[3].data;
+				}
+				if (coreState.pipeStageState[1].cmd.src2 == coreState.pipeStageState[i].cmd.dst){
+					coreState.pipeStageState[1].src2Val = Stages[3].data;
+				}
+			//	printf("i'm here\n");
+				STALL=false;
+				break;
+			}
+			else{
+				//printf("i'm here at stall\n");
+				STALL=true;
+				break;
+			//	printf("i'm here at stall\n");
+			}
+			}
+		}
+
+	}
+
+/*	if ((coreState.pipeStageState[2].cmd==CMD_ADD) || (coreState.pipeStageState[2].cmd==CMD_ADDI)
+			|| (coreState.pipeStageState[2].cmd==CMD_SUB) || (coreState.pipeStageState[2].cmd==CMD_SUBI)){
+		if (coreState.pipeStageState[1].cmd.src1 == coreState.pipeStageState[2].cmd.dst){
+			coreState.pipeStageState[1].src1Val = Stages[2].data;
+		}
+
+		if (coreState.pipeStageState[1].cmd.src2 == coreState.pipeStageState[2].cmd.dst){
+			coreState.pipeStageState[1].src2Val = Stages[2].data;
+		}
+
+		if (coreState.pipeStageState[3].cmd.dst == coreState.pipeStageState[1].cmd.src1 &&
+						coreState.pipeStageState[2].cmd.dst != coreState.pipeStageState[1].cmd.src1){
+			coreState.pipeStageState[1].src1Val = Stages[3].data;
+		}
+
+		if (coreState.pipeStageState[3].cmd.dst == coreState.pipeStageState[1].cmd.src2 &&
+						coreState.pipeStageState[2].cmd.dst != coreState.pipeStageState[1].cmd.src2){
+			coreState.pipeStageState[1].src2Val = Stages[3].data;
+		}
+
+		if (coreState.pipeStageState[4].cmd.dst == coreState.pipeStageState[1].cmd.src1 &&
+						coreState.pipeStageState[3].cmd.dst != coreState.pipeStageState[1].cmd.src1 &&
+						coreState.pipeStageState[2].cmd.dst != coreState.pipeStageState[1].cmd.src1){
+			coreState.pipeStageState[1].src1Val = Stages[4].data;
+		}
+
+		if (coreState.pipeStageState[4].cmd.dst == coreState.pipeStageState[1].cmd.src2 &&
+						coreState.pipeStageState[3].cmd.dst != coreState.pipeStageState[1].cmd.src2 &&
+						coreState.pipeStageState[2].cmd.dst != coreState.pipeStageState[1].cmd.src2){
+			coreState.pipeStageState[1].src2Val = Stages[4].data;
+		}
+
+	}*/
+/*	//forwarding from MEM (MEM/WB.RegWrite = 1) and MEM/WB.RegisterRd = ID/EX.RegisterRs and (EX/MEM.RegisterRd != ID/EX.RegisterRs or EX/MEM.RegWrite = 0)
 		if (coreState.pipeStageState[3].cmd.dst == coreState.pipeStageState[2].cmd.src1 &&
 				coreState.pipeStageState[3].cmd.dst != coreState.pipeStageState[1].cmd.src1 &&
 				(coreState.pipeStageState[3].cmd.dst == coreState.pipeStageState[2].cmd.src2 &&
@@ -338,16 +428,20 @@ void Forwarding(){
 		{
 			coreState.pipeStageState[1].src1Val = coreState.pipeStageState[3].src1Val;
 			coreState.pipeStageState[1].src2Val = coreState.pipeStageState[3].src2Val;
-		}
+		}*/
+
+
 	//cases when can't forward and a stall is needed forwarding from WB to EXE
-	if (coreState.pipeStageState[MEMORY].cmd.opcode == CMD_LOAD)
+/*	if (coreState.pipeStageState[MEMORY].cmd.opcode == CMD_LOAD)
 	{
 		if ((coreState.pipeStageState[DECODE].cmd.dst == coreState.pipeStageState[MEMORY].cmd.src1) ||
 				(coreState.pipeStageState[DECODE].cmd.dst == coreState.pipeStageState[MEMORY].cmd.src2))
 		{
 			LOAD_STALL = true;
 		}
-	}
+	}*/
+
+
 	return;
 }
 
@@ -365,11 +459,21 @@ void SIM_CoreClkTick() {
 		branch_flag = false;
 	}
 
+	if (READ_NEXT){
+		READ=true;
+	}
+	else{
+		READ=false;
+	}
 	if (HAZARD_CHECK()) {
 		if (forwarding) {
 			Forwarding();
 		}
-		else STALL = true;
+		else{
+			 // printf ("I'm here at STALL=trure/n");
+			STALL = true;
+		  //  printf ("I'm here at STALL=trure/n");
+		}
 	} else {
 		STALL = false; //Don't stall the pipe because of Data Hazard
 	//	printf ("I'm here at STALL=false/n");
@@ -379,13 +483,6 @@ void SIM_CoreClkTick() {
 		regFile_CCBefore[i] = coreState.regFile[i];
 	}
 
-	if (READ_NEXT){
-		READ=true;
-	}
-	else{
-		READ=false;
-	//	printf ("I'm here at READ=false/n");
-	}
 	//Do the process of each stage:
 	SIM_WB();
 	SIM_MEMORY();
@@ -418,6 +515,7 @@ void SIM_CoreGetState(SIM_coreState *curState) {
 		}
 	}
 }
+
 
 
 
