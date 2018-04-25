@@ -11,8 +11,9 @@ bool READ; // true if there is an instruction which needs for MEM stage more the
 bool branch_flag; // true if branch is the current cmd
 int32_t branch_add; // the address the mips needs to jump to
 int32_t regFile_CCBefore[SIM_REGFILE_SIZE];
-bool LOAD_STALL;
-bool READ_NEXT;
+bool READ_NEXT; // needs to keep on reading in the MEM stage the next clock cycle
+bool FORWARD_DST; // need to forward the dst value from one stage to another
+int32_t FORWARD_DST_VAL;
 
 typedef struct {
     int32_t data;  // the ALU result
@@ -67,11 +68,11 @@ void EmptyCertainStage(PipeStageState* stage)
 {
 	stage->src1Val = 0;
 	stage->src2Val = 0;
-	(&(stage->cmd))->opcode = CMD_NOP;
-	(&(stage->cmd))->src1 = 0;
-	(&(stage->cmd))->src2 = 0;
-	(&(stage->cmd))->isSrc2Imm = 0;
-	(&(stage->cmd))->dst = 0;
+	(stage->cmd).opcode = CMD_NOP;
+	(stage->cmd).src1 = 0;
+	(stage->cmd).src2 = 0;
+	(stage->cmd).isSrc2Imm = 0;
+	(stage->cmd).dst = 0;
 }
 
 
@@ -83,16 +84,17 @@ void SIM_EXECUTE()
 	}
 	if(STALL)
 	{
-		//printf("i'm here at stall\n");
 		EmptyCertainStage(&(coreState.pipeStageState[2]));
-		LOAD_STALL = false;
 	}
 	else
 	{
 		PipeStageState ID = coreState.pipeStageState[1] ;
 		PipeStageState EXE = coreState.pipeStageState[2] ;
 		EXE = ID;
-		int32_t dstVal = coreState.regFile[(ID.cmd).dst];
+		int32_t dst_val = coreState.regFile[(ID.cmd).dst];
+		if (FORWARD_DST){
+			dst_val=FORWARD_DST_VAL;
+		}
 		switch ((ID.cmd).opcode)
 		{
 			case (CMD_NOP):
@@ -121,19 +123,20 @@ void SIM_EXECUTE()
 			} break;
 			case (CMD_STORE):
 			{
-				Stages[2].address = dstVal + (ID).src2Val;
+				Stages[2].address = dst_val + (ID).src2Val;
 			} break;
 			case (CMD_BR):
 			{
-				Stages[2].address =  Stages[1].pc + dstVal;
+				Stages[2].address =  Stages[1].pc + dst_val;
 			} break;
 			case (CMD_BRNEQ):
 			{
-				Stages[2].address =  Stages[1].pc + dstVal;
+				Stages[2].address =  Stages[1].pc + dst_val;
+				Stages[2].data = (EXE).src1Val - (EXE).src2Val;
 			} break;
 			case (CMD_BREQ):
 			{
-				Stages[2].address =  Stages[1].pc + dstVal;
+				Stages[2].address =  Stages[1].pc + dst_val;
 				Stages[2].data = (EXE).src1Val - (EXE).src2Val;
 			} break;
 			case (CMD_HALT):{
@@ -142,6 +145,8 @@ void SIM_EXECUTE()
 		}
 		coreState.pipeStageState[2] = EXE ;
 		Stages[2].pc=Stages[1].pc;
+		FORWARD_DST=0;
+
 	}
 }
 
@@ -177,7 +182,6 @@ void SIM_MEMORY(){
 			}
 			else{
 				READ_NEXT=false;
-			//	printf ("I'm here at READ_NEXT=false/n");
 			}
 		} break;
 		case (CMD_STORE):
@@ -221,7 +225,6 @@ void SIM_WB()
 	{
 		PipeStageState MEM = coreState.pipeStageState[3] ;
 		PipeStageState WB = coreState.pipeStageState[4] ;
-//		SIM_cmd MEMcmd = MEM.cmd ;
 		WB = MEM; //Move the state to the following stage.
 		Stages[4] = Stages[3];
 		switch ((MEM.cmd).opcode)
@@ -246,12 +249,6 @@ void SIM_WB()
 			default : {}
 		}
 
-/*		if (LOAD_STALL)
-		{
-			coreState.pipeStageState[1].src1Val = coreState.pipeStageState[3].src1Val;
-			coreState.pipeStageState[1].src2Val = coreState.pipeStageState[3].src2Val;
-			LOAD_STALL = false;
-		}*/
 		coreState.pipeStageState[4] = WB ;
 
 	}
@@ -297,7 +294,6 @@ bool HAZARD_CHECK(){
 	for (int i=2; i<SIM_PIPELINE_DEPTH; i++){
 		if (split_regfile==true && i==SIM_PIPELINE_DEPTH-1) break;
 		SIM_cmd curr_cmd=(coreState.pipeStageState[i]).cmd;
-		//printf("check data hazard0");
 		if ((curr_cmd.opcode == CMD_ADD)
 				|| (curr_cmd.opcode == CMD_SUB)
 				|| (curr_cmd.opcode == CMD_LOAD)
@@ -305,14 +301,12 @@ bool HAZARD_CHECK(){
 				|| (curr_cmd.opcode == CMD_ADDI)){
 			if ((curr_cmd.dst==check_cmd.src1 && check_cmd.src1!=0)
 					|| (curr_cmd.dst==check_cmd.src2 && check_cmd.src2!=0 && check_cmd.isSrc2Imm==0)){
-			//	printf("before LOAD hazard1");
 				if (!((check_cmd.opcode==CMD_BR) || (check_cmd.opcode==CMD_NOP) || (check_cmd.opcode==CMD_HALT))){
-			//		printf("before LOAD hazard2");
 					return true;
 				}
 			}
 			else if(curr_cmd.dst==check_cmd.dst){
-				if ((check_cmd.opcode==CMD_BR) || (check_cmd.opcode==CMD_BREQ) || (check_cmd.opcode==CMD_BRNEQ)){
+				if ((check_cmd.opcode==CMD_BR) || (check_cmd.opcode==CMD_BREQ) || (check_cmd.opcode==CMD_BRNEQ) || (check_cmd.opcode==CMD_STORE)){
 					return true;
 				}
 			}
@@ -323,124 +317,113 @@ bool HAZARD_CHECK(){
 }
 
 void Forwarding(){
-	//trying to figure out which kind of forwarding is needed forwarding from EXE stage if EX/MEM.RegisterRd = ID/EX.RegisterRs &&  EX/MEM.RegisterRd = ID/EX.RegisterRt then forward
 
-/*		if (coreState.pipeStageState[1].cmd.src1 == coreState.pipeStageState[2].cmd.dst
-				|| coreState.pipeStageState[1].cmd.src2 == coreState.pipeStageState[2].cmd.dst )
-		{
-			coreState.pipeStageState[1].src1Val = coreState.pipeStageState[2].src1Val;
-			coreState.pipeStageState[1].src2Val = coreState.pipeStageState[2].src2Val;
-		}*/
-	for (int i=2; i < SIM_PIPELINE_DEPTH; i++){
+	//variables which keeps the last state in which the data was changed because of DATA HAZARD, and updates if necessary
+	//for HAZARD which happens because of LOAD
+	int updated_src1=SIM_PIPELINE_DEPTH, updated_src2=SIM_PIPELINE_DEPTH, updated_dst=SIM_PIPELINE_DEPTH;
+
+	//check if there is a DATA HAZARD because of arithmetic command
+	for (int i=SIM_PIPELINE_DEPTH-1; i >=2; i--){
 		if ((coreState.pipeStageState[i].cmd.opcode==CMD_ADD) || (coreState.pipeStageState[i].cmd.opcode==CMD_ADDI)
 				|| (coreState.pipeStageState[i].cmd.opcode==CMD_SUB) || (coreState.pipeStageState[i].cmd.opcode==CMD_SUBI)){
 			if (coreState.pipeStageState[1].cmd.src1 == coreState.pipeStageState[i].cmd.dst
-					|| coreState.pipeStageState[1].cmd.src2 == coreState.pipeStageState[i].cmd.dst){
+					|| coreState.pipeStageState[1].cmd.src2 == coreState.pipeStageState[i].cmd.dst
+					|| coreState.pipeStageState[1].cmd.dst == coreState.pipeStageState[i].cmd.dst){
 
 				if (coreState.pipeStageState[1].cmd.src1 == coreState.pipeStageState[i].cmd.dst){
-					coreState.pipeStageState[1].src1Val = Stages[2].data;
+					coreState.pipeStageState[1].src1Val = Stages[i].data;
+					updated_src1=i;
 				}
 
 				if (coreState.pipeStageState[1].cmd.src2 == coreState.pipeStageState[i].cmd.dst){
-					coreState.pipeStageState[1].src2Val = Stages[2].data;
+					coreState.pipeStageState[1].src2Val = Stages[i].data;
+					updated_src2=i;
 				}
-				break;
+				if (coreState.pipeStageState[1].cmd.dst == coreState.pipeStageState[i].cmd.dst){
+					if ((coreState.pipeStageState[1].cmd.opcode==CMD_BR) ||
+							(coreState.pipeStageState[1].cmd.opcode==CMD_BREQ) ||
+							(coreState.pipeStageState[1].cmd.opcode==CMD_BRNEQ) ||
+							(coreState.pipeStageState[1].cmd.opcode==CMD_STORE)){
+						FORWARD_DST=1;
+						FORWARD_DST_VAL=Stages[i].data;
+						updated_dst=i;
+					}
+				}
 			}
 		}
 	}
-
 	STALL=false;
 
-	for (int i=2; i < SIM_PIPELINE_DEPTH; i++){
+	//check if there is a later HAZARD caused by LOAD
+	for (int i=SIM_PIPELINE_DEPTH-1; i >=2; i--){
 
 		if (coreState.pipeStageState[i].cmd.opcode==CMD_LOAD){
 			if (coreState.pipeStageState[1].cmd.src1 == coreState.pipeStageState[i].cmd.dst
-					|| coreState.pipeStageState[1].cmd.src2 == coreState.pipeStageState[i].cmd.dst){
+					|| coreState.pipeStageState[1].cmd.src2 == coreState.pipeStageState[i].cmd.dst
+					|| coreState.pipeStageState[1].cmd.dst == coreState.pipeStageState[i].cmd.dst){
 			if (i==SIM_PIPELINE_DEPTH-1){
 				if (coreState.pipeStageState[1].cmd.src1 == coreState.pipeStageState[i].cmd.dst){
-					coreState.pipeStageState[1].src1Val = Stages[4].data;
+					if (updated_src1==SIM_PIPELINE_DEPTH){
+						coreState.pipeStageState[1].src1Val = Stages[4].data;
+					}
 				}
 				if (coreState.pipeStageState[1].cmd.src2 == coreState.pipeStageState[i].cmd.dst){
-					coreState.pipeStageState[1].src2Val = Stages[4].data;
+					if (updated_src2==SIM_PIPELINE_DEPTH){
+						coreState.pipeStageState[1].src2Val = Stages[4].data;
+					}
+				}
+				if (coreState.pipeStageState[1].cmd.dst == coreState.pipeStageState[i].cmd.dst){
+					if ((coreState.pipeStageState[1].cmd.opcode==CMD_BR) ||
+							(coreState.pipeStageState[1].cmd.opcode==CMD_BREQ) ||
+							(coreState.pipeStageState[1].cmd.opcode==CMD_BRNEQ) ||
+							(coreState.pipeStageState[1].cmd.opcode==CMD_STORE)){
+						if (updated_dst==SIM_PIPELINE_DEPTH){
+							FORWARD_DST=1;
+							FORWARD_DST_VAL=Stages[i].data;
+						}
+					}
 				}
 				STALL=false;
 			}
-			if (i==SIM_PIPELINE_DEPTH-2 && !READ){
+			else if (i==SIM_PIPELINE_DEPTH-2 && !READ){
 				if (coreState.pipeStageState[1].cmd.src1 == coreState.pipeStageState[i].cmd.dst){
-					coreState.pipeStageState[1].src1Val = Stages[3].data;
+					if (updated_src1>SIM_PIPELINE_DEPTH-2){
+						coreState.pipeStageState[1].src1Val = Stages[3].data;
+					}
 				}
 				if (coreState.pipeStageState[1].cmd.src2 == coreState.pipeStageState[i].cmd.dst){
-					coreState.pipeStageState[1].src2Val = Stages[3].data;
+					if (updated_src2>SIM_PIPELINE_DEPTH-2){
+						coreState.pipeStageState[1].src2Val = Stages[3].data;
+					}
 				}
-			//	printf("i'm here\n");
+				if (coreState.pipeStageState[1].cmd.dst == coreState.pipeStageState[i].cmd.dst){
+					if ((coreState.pipeStageState[1].cmd.opcode==CMD_BR) ||
+							(coreState.pipeStageState[1].cmd.opcode==CMD_BREQ) ||
+							(coreState.pipeStageState[1].cmd.opcode==CMD_BRNEQ) ||
+							(coreState.pipeStageState[1].cmd.opcode==CMD_STORE)){
+						if (updated_dst>SIM_PIPELINE_DEPTH-2){
+							FORWARD_DST=1;
+							FORWARD_DST_VAL=Stages[i].data;
+						}
+					}
+				}
 				STALL=false;
-				break;
 			}
 			else{
-				//printf("i'm here at stall\n");
+				if ((coreState.pipeStageState[1].cmd.src1 == coreState.pipeStageState[i].cmd.dst) && (updated_src1>i)){
 				STALL=true;
-				break;
-			//	printf("i'm here at stall\n");
+				}
+				if ((coreState.pipeStageState[1].cmd.src2 == coreState.pipeStageState[i].cmd.dst) && (updated_src2>i)){
+					STALL=true;
+				}
+				if ((coreState.pipeStageState[1].cmd.dst == coreState.pipeStageState[i].cmd.dst) && (updated_dst>i)){
+					STALL=true;
+				}
 			}
 			}
 		}
 
 	}
-
-/*	if ((coreState.pipeStageState[2].cmd==CMD_ADD) || (coreState.pipeStageState[2].cmd==CMD_ADDI)
-			|| (coreState.pipeStageState[2].cmd==CMD_SUB) || (coreState.pipeStageState[2].cmd==CMD_SUBI)){
-		if (coreState.pipeStageState[1].cmd.src1 == coreState.pipeStageState[2].cmd.dst){
-			coreState.pipeStageState[1].src1Val = Stages[2].data;
-		}
-
-		if (coreState.pipeStageState[1].cmd.src2 == coreState.pipeStageState[2].cmd.dst){
-			coreState.pipeStageState[1].src2Val = Stages[2].data;
-		}
-
-		if (coreState.pipeStageState[3].cmd.dst == coreState.pipeStageState[1].cmd.src1 &&
-						coreState.pipeStageState[2].cmd.dst != coreState.pipeStageState[1].cmd.src1){
-			coreState.pipeStageState[1].src1Val = Stages[3].data;
-		}
-
-		if (coreState.pipeStageState[3].cmd.dst == coreState.pipeStageState[1].cmd.src2 &&
-						coreState.pipeStageState[2].cmd.dst != coreState.pipeStageState[1].cmd.src2){
-			coreState.pipeStageState[1].src2Val = Stages[3].data;
-		}
-
-		if (coreState.pipeStageState[4].cmd.dst == coreState.pipeStageState[1].cmd.src1 &&
-						coreState.pipeStageState[3].cmd.dst != coreState.pipeStageState[1].cmd.src1 &&
-						coreState.pipeStageState[2].cmd.dst != coreState.pipeStageState[1].cmd.src1){
-			coreState.pipeStageState[1].src1Val = Stages[4].data;
-		}
-
-		if (coreState.pipeStageState[4].cmd.dst == coreState.pipeStageState[1].cmd.src2 &&
-						coreState.pipeStageState[3].cmd.dst != coreState.pipeStageState[1].cmd.src2 &&
-						coreState.pipeStageState[2].cmd.dst != coreState.pipeStageState[1].cmd.src2){
-			coreState.pipeStageState[1].src2Val = Stages[4].data;
-		}
-
-	}*/
-/*	//forwarding from MEM (MEM/WB.RegWrite = 1) and MEM/WB.RegisterRd = ID/EX.RegisterRs and (EX/MEM.RegisterRd != ID/EX.RegisterRs or EX/MEM.RegWrite = 0)
-		if (coreState.pipeStageState[3].cmd.dst == coreState.pipeStageState[2].cmd.src1 &&
-				coreState.pipeStageState[3].cmd.dst != coreState.pipeStageState[1].cmd.src1 &&
-				(coreState.pipeStageState[3].cmd.dst == coreState.pipeStageState[2].cmd.src2 &&
-						coreState.pipeStageState[3].cmd.dst != coreState.pipeStageState[1].cmd.src2))
-		{
-			coreState.pipeStageState[1].src1Val = coreState.pipeStageState[3].src1Val;
-			coreState.pipeStageState[1].src2Val = coreState.pipeStageState[3].src2Val;
-		}*/
-
-
-	//cases when can't forward and a stall is needed forwarding from WB to EXE
-/*	if (coreState.pipeStageState[MEMORY].cmd.opcode == CMD_LOAD)
-	{
-		if ((coreState.pipeStageState[DECODE].cmd.dst == coreState.pipeStageState[MEMORY].cmd.src1) ||
-				(coreState.pipeStageState[DECODE].cmd.dst == coreState.pipeStageState[MEMORY].cmd.src2))
-		{
-			LOAD_STALL = true;
-		}
-	}*/
-
 
 	return;
 }
@@ -470,13 +453,10 @@ void SIM_CoreClkTick() {
 			Forwarding();
 		}
 		else{
-			 // printf ("I'm here at STALL=trure/n");
 			STALL = true;
-		  //  printf ("I'm here at STALL=trure/n");
 		}
 	} else {
-		STALL = false; //Don't stall the pipe because of Data Hazard
-	//	printf ("I'm here at STALL=false/n");
+		STALL = false;
 	}
 
 	for (int i=0; i< SIM_REGFILE_SIZE; i++) {
@@ -489,7 +469,6 @@ void SIM_CoreClkTick() {
 	SIM_EXECUTE();
 	SIM_DECODE();
 	SIM_FETCH();
-	LOAD_STALL = false;
 
 }
 
