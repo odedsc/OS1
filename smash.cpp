@@ -54,8 +54,6 @@ extern pid_t currFG_PID;
 
 list<string> history_list;
 
-char prv_directory[MAX_LINE_SIZE];
-
 
 
 //**************************************************************************************
