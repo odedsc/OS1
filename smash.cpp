@@ -54,6 +54,8 @@ extern pid_t currFG_PID;
 
 list<string> history_list;
 
+char prv_directory[MAX_LINE_SIZE];
+
 
 
 //**************************************************************************************
@@ -69,8 +71,6 @@ int main (int argc, char *argv[])
 {
 
     char cmdString[MAX_LINE_SIZE];
-
-
 
 
 
@@ -134,11 +134,11 @@ int main (int argc, char *argv[])
 
 					// perform a complicated Command
 
-//		if(!ExeComp(lineSize)) continue;
+		if(!ExeComp(lineSize)) continue;
 
 					// background command
 
-//	 	if(!BgCmd(lineSize, jobs)) continue;
+	 	if(!BgCmd(lineSize, jobs)) continue;
 
 					// built in commands
 
