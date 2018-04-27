@@ -344,7 +344,7 @@ int ExeCmd(vector<Job> jobs, char* lineSize, char* cmdString)
 
 			int command_number = atoi(args[1]);
 
-			cout << command_number << endl;
+		//	cout << command_number << endl;
 
 			for( vector<Job>::iterator i = jobs.begin(); i != jobs.end(); i++, j++ )
 
