@@ -65,11 +65,18 @@ int ExeCmd(vector<Job> jobs, char* lineSize, char* cmdString)
 		}
 		else if (!strcmp(args[1], "-")){
 		//	chdir("..");
-			cout << prv_directory << endl;
+			getcwd(directory, sizeof(directory));
 			if (chdir(prv_directory)==-1){
 				cout << "smash error: > \"" << args[1] << "\" - path not found" << endl;
 			}
+			else{
+				cout << prv_directory << endl;
+			}
+			for (int i=0; i<MAX_LINE_SIZE; i++){
+				prv_directory[i]=directory[i];
+			}
 		}
+		else{
 		getcwd(directory, sizeof(directory));
 		int res=chdir(args[1]);
 		if (res==-1 && num_arg==1){
@@ -79,6 +86,7 @@ int ExeCmd(vector<Job> jobs, char* lineSize, char* cmdString)
 			for (int i=0; i<MAX_LINE_SIZE; i++){
 				prv_directory[i]=directory[i];
 			}
+		}
 		}
 	}
 	/*************************************************/
