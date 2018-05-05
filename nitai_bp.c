@@ -104,7 +104,7 @@ int calc_hist(uint32_t pc, int BTB_id){
 				return pc_toXor ^ history_toXor;
 			}
 		}
-		else{
+		else if (!isGlobTable || (isGlobTable && shared_type==NOT_SHARE)){
 			return BTB[BTB_id].LocalHistory;
 		}
 	}
@@ -119,7 +119,7 @@ int calc_hist(uint32_t pc, int BTB_id){
 				return global_BHR ^ pc_toXor;
 			}
 		}
-		else{
+		else if (!isGlobTable || (isGlobTable && shared_type==NOT_SHARE)){
 			return global_BHR;
 		}
 	}
