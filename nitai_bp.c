@@ -293,5 +293,6 @@ void BP_update(uint32_t pc, uint32_t targetPc, bool taken, uint32_t pred_dst)
 	return;
 }
 void BP_GetStats(SIM_stats *curStats) {
+	*curStats=curr_stats;
 	return;
 }
