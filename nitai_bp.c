@@ -89,7 +89,64 @@ int BP_init(unsigned btbSize, unsigned historySize, unsigned tagSize,
 	return 0;
 }
 
+/*find the history value in the history table by different parameters*/
+int calc_hist(uint32_t pc, int BTB_id){
+	if (!isGlobHist){
+		if (isGlobTable){
+			if (shared_type==SHARE_LSB){
+				int pc_toXor=(pc/4)%(1 << history_Size);
+				int history_toXor=BTB[BTB_id].LocalHistory;
+				return pc_toXor ^ history_toXor;
+			}
+			else if (shared_type==SHARE_MID){
+				int pc_toXor=(((pc/4)%(1 << history_Size))) << 14;
+				int history_toXor=BTB[BTB_id].LocalHistory;
+				return pc_toXor ^ history_toXor;
+			}
+		}
+		else{
+			return BTB[BTB_id].LocalHistory;
+		}
+	}
+	else{
+		if (isGlobTable){
+			if (shared_type==SHARE_LSB){
+				int pc_toXor=(pc/4)%(1 << history_Size);
+				return global_BHR ^ pc_toXor;
+			}
+			else if (shared_type==SHARE_MID){
+				int pc_toXor=(((pc/4)%(1 << history_Size))) << 14;
+				return global_BHR ^ pc_toXor;
+			}
+		}
+		else{
+			return global_BHR;
+		}
+	}
+}
+
+
 bool BP_predict(uint32_t pc, uint32_t *dst){
+	int BTB_id=(pc/4)%(btb_Size);
+	if (BTB[BTB_id].tag!=-1 && BTB[BTB_id].target!=-1){
+		if (BTB[BTB_id].tag==((pc/4)%(1 << tag_Size))){ // check tag match
+			int hist=calc_hist(pc, BTB_id);
+			if (isGlobTable){
+				if (Global_States[hist]==WT || Global_States[hist]==ST){ // if the history value is ST or WT, predict branch
+					*dst=BTB[BTB_id].target;
+					return true;
+				}
+			}
+			else if (!isGlobTable){
+				if (Local_States[BTB_id][hist]==WT || Local_States[BTB_id][hist]==ST){ // if the history value is ST or WT, predict branch
+					*dst=BTB[BTB_id].target;
+					return true;
+				}
+			}
+		}
+	}
+	//if there isn't a branch prediction
+	*dst=pc+4;
 	return false;
 }
 
