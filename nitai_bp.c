@@ -150,10 +150,148 @@ bool BP_predict(uint32_t pc, uint32_t *dst){
 	return false;
 }
 
-void BP_update(uint32_t pc, uint32_t targetPc, bool taken, uint32_t pred_dst){
-	return;
+
+// Increase prediction by one (for instance, WT -> ST)
+State increase_State(prediction curr)
+{
+	if (curr < ST)
+	{
+		return (curr+1);
+	}
+	else return curr;
 }
 
+// Decrease prediction by one (for instance, WT -> WNT)
+State decrease_State(prediction curr)
+{
+	if (curr > SNT)
+	{
+		return (curr-1);
+	}
+	else return curr;
+}
+
+/*update the history value by checking whether we jumped or not*/
+int update_history(int history, bool taken){
+	if (taken){
+		return (((history << 1) + 1 ) % ( 1 << history_Size));
+	}
+	else{
+		return ((history << 1 ) % ( 1 << history_Size));
+	}
+
+}
+
+
+
+void BP_update(uint32_t pc, uint32_t targetPc, bool taken, uint32_t pred_dst)
+{
+
+	//Update the BTB:
+	int BTB_id = ((pc / 4) % btb_Size);
+	BTB_entry curr_line = (BTB[BTB_id]);
+
+	 // change the BTB entry if it's empty or doesn't match the tag
+	bool same_Tag = false;
+	int pc_tag = ((pc / 4) % (1 << tag_Size));
+	if (curr_line.tag == pc_tag){
+		same_Tag = true;
+	}
+	curr_line.target = targetPc; //update the BTB entry
+	if ((curr_line.tag == -1) || (same_Tag==false)){
+		//Add BTB entry:
+		curr_line.tag = ((pc / 4) % (1 << tag_Size));
+
+		//update the relevant state machine:
+		//get the current history value:
+		unsigned int hist_id=0;
+		if (isGlobHist){
+			hist_id=calc_hist(pc, BTB_id);
+		}
+		else{
+			if (isGlobTable){
+				if (shared_type==SHARE_LSB){
+					hist_id=(pc/4)%(1 << history_Size);
+				}
+				else if (shared_type==SHARE_MID){
+					hist_id=(((pc/4)%(1 << history_Size))) << 14;
+				}
+			}
+		}
+		//update the relevant state machine:
+		if (isGlobTable)
+		{
+			//update the global states machine
+			Global_States[hist_id] = (taken? increase_State(Global_States[hist_id]) : decrease_State(Global_States[hist_id]))
+		}
+		else
+		{
+			//initialize local states machine
+			for (int i=0; i < States_max_size; i++)
+			{
+				Local_States[BTB_id][i] = WNT;
+			}
+
+			//Update the relevant state
+			Local_States[BTB_id][hist_id] = (taken? increase_State(Local_States[BTB_id][hist_id]) : decrease_State(Local_States[BTB_id][hist_id]))
+		}
+
+		//update history value:
+		if (isGlobHist)
+		{
+			global_BHR=update_history(global_BHR, taken);
+		}
+		else
+		{
+			curr_line.LocalHistory = taken ? 1 : 0;
+		}
+
+	}
+	else
+	{ //BTB entry already contains this branch:
+
+		//calculate history value:
+		unsigned int hist_id=calc_hist(pc, BTB_id);
+
+		//update the relevant state machine:
+		if (isGlobTable)
+		{
+			//update the global states machine
+			Global_States[hist_id] = (taken? increase_State(Global_States[hist_id]) : decrease_State(Global_States[hist_id]))
+		}
+		else
+		{
+			//Update the specific state in the relevant state machine:
+			Local_States[BTB_id][hist_id] = (taken? increase_State(Local_States[BTB_id][hist_id]) : decrease_State(Local_States[BTB_id][hist_id]))
+		}
+
+		//update the relevant history value:
+		if (isGlobHist)
+		{
+			global_BHR=update_history(global_BHR,taken);
+		}
+		else
+		{
+			curr_line.LocalHistory = update_history(curr_line.LocalHistory, taken);
+		}
+
+	}
+
+	/*curr_stats update*/
+	curr_stats.br_num++;
+	if (taken){
+		if (targetPc!=pred_dst){
+			curr_stats.flush_num++;
+		}
+	}
+	else if (!taken){
+		if ((pc+4)!=pred_dst){
+			curr_stats.flush_num++;
+		}
+	}
+	/*****************/
+	return;
+}
 void BP_GetStats(SIM_stats *curStats) {
 	return;
 }
