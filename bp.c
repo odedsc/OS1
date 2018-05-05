@@ -256,7 +256,7 @@ void BP_update(uint32_t pc, uint32_t targetPc, bool taken, uint32_t pred_dst)
 		if (isGlobTable)
 		{
 			//update the global states machine
-			Global_States[hist_id] = (taken? increase_State(Global_States[hist_id]) : decrease_State(Global_States[hist_id]))
+			Global_States[hist_id] = (taken? increase_State(Global_States[hist_id]) : decrease_State(Global_States[hist_id]));
 		}
 		else
 		{
@@ -267,7 +267,7 @@ void BP_update(uint32_t pc, uint32_t targetPc, bool taken, uint32_t pred_dst)
 			}
 
 			//Update the relevant state
-			Local_States[BTB_id][hist_id] = (taken? increase_State(Local_States[BTB_id][hist_id]) : decrease_State(Local_States[BTB_id][hist_id]))
+			Local_States[BTB_id][hist_id] = (taken? increase_State(Local_States[BTB_id][hist_id]) : decrease_State(Local_States[BTB_id][hist_id]));
 		}
 
 		//update history value:
@@ -291,12 +291,12 @@ void BP_update(uint32_t pc, uint32_t targetPc, bool taken, uint32_t pred_dst)
 		if (isGlobTable)
 		{
 			//update the global states machine
-			Global_States[hist_id] = (taken? increase_State(Global_States[hist_id]) : decrease_State(Global_States[hist_id]))
+			Global_States[hist_id] = (taken? increase_State(Global_States[hist_id]) : decrease_State(Global_States[hist_id]));
 		}
 		else
 		{
 			//Update the specific state in the relevant state machine:
-			Local_States[BTB_id][hist_id] = (taken? increase_State(Local_States[BTB_id][hist_id]) : decrease_State(Local_States[BTB_id][hist_id]))
+			Local_States[BTB_id][hist_id] = (taken? increase_State(Local_States[BTB_id][hist_id]) : decrease_State(Local_States[BTB_id][hist_id]));
 		}
 
 		//update the relevant history value:
