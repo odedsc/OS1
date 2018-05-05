@@ -111,9 +111,12 @@ int calc_hist(uint32_t pc, int BTB_id)
 			}
 			else if (shared_type==SHARE_MID)
 			{
-				int pc_toXor=(((pc/4)%(1 << history_Size))) << 14;
+				int pc_toXor=(((pc/4)%(1 << history_Size)) >> 14) << 14;
 				int history_toXor=BTB[BTB_id].LocalHistory;
 				return pc_toXor ^ history_toXor;
+			}
+			else if (shared_type==NOT_SHARE){
+				return global_BHR;
 			}
 		}
 		else if (!isGlobTable || (isGlobTable && shared_type==NOT_SHARE))
@@ -132,8 +135,11 @@ int calc_hist(uint32_t pc, int BTB_id)
 			}
 			else if (shared_type==SHARE_MID)
 			{
-				int pc_toXor=(((pc/4)%(1 << history_Size))) << 14;
+				int pc_toXor=(((pc/4)%(1 << history_Size)) >> 14) << 14;
 				return global_BHR ^ pc_toXor;
+			}
+			else if (shared_type==NOT_SHARE){
+				return global_BHR;
 			}
 		}
 		else if (!isGlobTable || (isGlobTable && shared_type==NOT_SHARE))
@@ -141,6 +147,7 @@ int calc_hist(uint32_t pc, int BTB_id)
 			return global_BHR;
 		}
 	}
+	return -1;
 }
 
 
@@ -209,8 +216,6 @@ int update_history(int history, bool taken){
 
 }
 
-
-
 void BP_update(uint32_t pc, uint32_t targetPc, bool taken, uint32_t pred_dst)
 {
 
@@ -248,7 +253,7 @@ void BP_update(uint32_t pc, uint32_t targetPc, bool taken, uint32_t pred_dst)
 				}
 				else if (shared_type==SHARE_MID)
 				{
-					hist_id=(((pc/4)%(1 << history_Size))) << 14;
+					hist_id=(((pc/4)%(1 << history_Size)) >> 14) << 14;
 				}
 			}
 		}
@@ -327,6 +332,7 @@ void BP_update(uint32_t pc, uint32_t targetPc, bool taken, uint32_t pred_dst)
 	}
 	return;
 }
+
 
 void BP_GetStats(SIM_stats *curStats) {
 	*curStats=current_stats;
