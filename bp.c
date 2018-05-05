@@ -216,24 +216,24 @@ void BP_update(uint32_t pc, uint32_t targetPc, bool taken, uint32_t pred_dst)
 
 	//Update the BTB:
 	int BTB_id = ((pc / 4) % BTB_Size);
-	BTB_line current_line = (BTB[BTB_id]);
+	BTB_line* current_line = &(BTB[BTB_id]);
 
 	 // change the BTB entry if it's empty or doesn't match the tag
 	bool same_Tag = false;
 	int pc_tag = ((pc / 4) % (1 << tag_Size));
-	if (current_line.tag == pc_tag)
+	if (current_line->tag == pc_tag)
 	{
 		same_Tag = true;
 	}
-	current_line.target = targetPc; //update the BTB entry
-	if ((current_line.tag == -1) || (same_Tag==false))
+	current_line->target = targetPc; //update the BTB entry
+	if ((current_line->tag == -1) || (same_Tag==false))
 	{
 		//Add BTB entry:
-		current_line.tag = ((pc / 4) % (1 << tag_Size));
+		current_line->tag = ((pc / 4) % (1 << tag_Size));
 
 		//update the relevant state machine:
-		//get the currentent history value:
-		unsigned int hist_id=0;
+		//get the current history value:
+		int hist_id=0;
 		if (isGlobHist)
 		{
 			hist_id=calc_hist(pc, BTB_id);
@@ -277,15 +277,14 @@ void BP_update(uint32_t pc, uint32_t targetPc, bool taken, uint32_t pred_dst)
 		}
 		else
 		{
-			current_line.LocalHistory = taken ? 1 : 0;
+			current_line->LocalHistory = taken ? 1 : 0;
 		}
-
 	}
 	else
 	{ //BTB entry already contains this branch:
 
 		//calculate history value:
-		unsigned int hist_id=calc_hist(pc, BTB_id);
+		int hist_id=calc_hist(pc, BTB_id);
 
 		//update the relevant state machine:
 		if (isGlobTable)
@@ -306,11 +305,11 @@ void BP_update(uint32_t pc, uint32_t targetPc, bool taken, uint32_t pred_dst)
 		}
 		else
 		{
-			current_line.LocalHistory = update_history(current_line.LocalHistory, taken);
+			current_line->LocalHistory = update_history(current_line->LocalHistory, taken);
 		}
 
 	}
-	/*current_stats update*/
+	//current_stats update
 	current_stats.br_num++;
 	if (taken)
 	{
@@ -326,9 +325,9 @@ void BP_update(uint32_t pc, uint32_t targetPc, bool taken, uint32_t pred_dst)
 			current_stats.flush_num++;
 		}
 	}
-	/*****************/
 	return;
 }
+
 void BP_GetStats(SIM_stats *curStats) {
 	*curStats=current_stats;
 	return;
