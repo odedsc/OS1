@@ -28,7 +28,6 @@ public:
 	bool done;
 	
 	FILE* plog_file;
-	ATM** ATM_array;
 
 	Bank();
 	~Bank();

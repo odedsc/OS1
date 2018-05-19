@@ -11,13 +11,7 @@ Bank::Bank()
 	Bank_mutex         (),
 	read_counter       (0),
 	balance            (0),
-	plog_file          (fopen("log.txt", "w")),
-	ATM_array          (NULL),
-}
-
-void Bank::Init(int num_of_ATM)
-{
-	ATM_array = new ATM*[num_of_ATM];
+	plog_file          (fopen("log.txt", "w"))
 }
 
 Bank::~Bank()
