@@ -24,13 +24,13 @@ void ATM::open_account(int id, int password, int balance){
 	/*check if already exists*/
 	if (bank.account(id)!=NULL){
 		bank.write_unlock();
-		fprintf(bank.file, "Error %d: Your transaction failed - account with the same id exists", id_);
+		fprintf(bank.file, "Error %d: Your transaction failed - account with the same id exists\n", id_);
 	}
 	else{
 		sleep(1);
 		bank.add_account(new_acc);
 		bank.write_unlock();
-		fprintf(bank.file, "%d: New account id is %d with password %d and initial balance %d",id_, id, password, balance);
+		fprintf(bank.file, "%d: New account id is %d with password %d and initial balance %d\n",id_, id, password, balance);
 	}
 
 }
@@ -39,7 +39,7 @@ void ATM::turn_VIP(int account, int password){
 	bank.read_lock();
 	Account* pAccount= bank.pAccount(account);
 	if (pAccount==NULL || (pAccount!=NULL && pAccount->password_!=password)){
-		fprintf(bank.file, "Error %d: your transaction failed - password for account %d is incorrect", id_, account);
+		fprintf(bank.file, "Error %d: your transaction failed - password for account %d is incorrect\n", id_, account);
 		bank.read_unlock();
 	}
 	else{
@@ -56,7 +56,7 @@ void ATM::deposit(int account, int password, int amount){
 	bank.read_lock();
 	Account* pAccount= bank.pAccount(account);
 	if (pAccount!=NULL && pAccount->password_!=password){
-		fprintf(bank.file, "Error %d: your transaction failed - password for account %d is incorrect", id_, account);
+		fprintf(bank.file, "Error %d: your transaction failed - password for account %d is incorrect\n", id_, account);
 		bank.read_unlock();
 	}
 	else{
@@ -65,7 +65,7 @@ void ATM::deposit(int account, int password, int amount){
 		pAccount->deposit(amount);
 		pAccount->unlock();
 		bank.read_unlock();
-		fprintf(bank.file, "%d: Account %d new balance is %d after %d $ was deposited", id_, account, pAccount->balance_, amount);
+		fprintf(bank.file, "%d: Account %d new balance is %d after %d $ was deposited\n", id_, account, pAccount->balance_, amount);
 	}
 
 }
@@ -74,21 +74,40 @@ void withdraw(int account, int password, int amount){
 	bank.read_lock();
 	Account* pAccount= bank.pAccount(account);
 	if (pAccount!=NULL && pAccount->password_!=password){
-		fprintf(bank.file, "Error %d: your transaction failed - password for account %d is incorrect", id_, account);
+		fprintf(bank.file, "Error %d: your transaction failed - password for account %d is incorrect\n", id_, account);
 		bank.read_unlock();
 	}
 	else if (amount > pAccount->balance_){
-		fprintf(bank.file, "Error %d: your transaction failed - account id %d balance is lower than %d", id_, account, amount);
+		fprintf(bank.file, "Error %d: your transaction failed - account id %d balance is lower than %d\n", id_, account, amount);
 		bank.read_unlock();
 	}
 	else{
 		pAccount->lock();
 		sleep(1);
-		pAccount->deposit(amount);
+		pAccount->withdraw(amount);
 		pAccount->unlock();
 		bank.read_unlock();
-		fprintf(bank.file, "%d: Account %d new balance is %d after %d $ was withdrew", id_, account, pAccount->balance_, amount);
+		fprintf(bank.file, "%d: Account %d new balance is %d after %d $ was withdrew\n", id_, account, pAccount->balance_, amount);
 	}
 }
+
+void balance_inquiry(int account, int password){
+	bank.read_lock();
+	Account* pAccount= bank.pAccount(account);
+	if (pAccount!=NULL && pAccount->password_!=password){
+		fprintf(bank.file, "Error %d: your transaction failed - password for account %d is incorrect\n", id_, account);
+		bank.read_unlock();
+	}
+	else{
+		pAccount->lock();
+		sleep(1);
+		pAccount->balance_inquiry();
+		pAccount->unlock();
+		bank.read_unlock();
+		fprintf(bank.file, "%d: Account %d balance is %d\n", id_, account, pAccount->balance_);
+	}
+
+}
+
 
 
