@@ -7,6 +7,8 @@
 #include "ATM.h"
 #include <stdio.h>
 
+extern Bank bank;
+
 ATM::ATM(int id){
 	id_=id;
 	pthread_mutex_init(&mutex_, NULL);
@@ -22,7 +24,7 @@ void ATM::open_account(int id, int password, int balance){
 	bank.write_lock();
 
 	/*check if already exists*/
-	if (bank.account(id)!=NULL){
+	if (bank.account_exist(id)!=NULL){
 		bank.write_unlock();
 		fprintf(bank.file, "Error %d: Your transaction failed - account with the same id exists\n", id_);
 	}
@@ -30,14 +32,14 @@ void ATM::open_account(int id, int password, int balance){
 		sleep(1);
 		bank.add_account(new_acc);
 		bank.write_unlock();
-		fprintf(bank.file, "%d: New account id is %d with password %d and initial balance %d\n",id_, id, password, balance);
+		fprintf(bank.file, "%d: New account id is %d with password %d and initial balance %d\n",id_, id_, password, balance);
 	}
 
 }
 
 void ATM::turn_VIP(int account, int password){
 	bank.read_lock();
-	Account* pAccount= bank.pAccount(account);
+	Account* pAccount= bank.account_exist(account);
 	if (pAccount==NULL || (pAccount!=NULL && pAccount->password_!=password)){
 		fprintf(bank.file, "Error %d: your transaction failed - password for account %d is incorrect\n", id_, account);
 		bank.read_unlock();
@@ -53,8 +55,8 @@ void ATM::turn_VIP(int account, int password){
 }
 
 void ATM::deposit(int account, int password, int amount){
-	bank.read_lock();
-	Account* pAccount= bank.pAccount(account);
+	bank.read_lock_();
+	Account* pAccount= bank.account_exist(account);
 	if (pAccount==NULL){
 		fprintf(bank.file, "Error %d: your transaction failed - acount id %d does not exist\n", id_, account);
 		bank.read_unlock();
@@ -76,9 +78,9 @@ void ATM::deposit(int account, int password, int amount){
 
 void withdraw(int account, int password, int amount){
 	bank.read_lock();
-	Account* pAccount= bank.pAccount(account);
+	Account* pAccount= bank.account_exist(account);
 	if (pAccount==NULL){
-		fprintf(bank.file, "Error %d: your transaction failed - acount id %d does not exist\n", id_, account);
+		fprintf(bank.file, "Error %d: your transaction failed - account id %d does not exist\n", id_, account);
 		bank.read_unlock();
 	}
 	else if (pAccount!=NULL && pAccount->password_!=password){
@@ -101,7 +103,7 @@ void withdraw(int account, int password, int amount){
 
 void balance_inquiry(int account, int password){
 	bank.read_lock();
-	Account* pAccount= bank.pAccount(account);
+	Account* pAccount= bank.account_exist(account);
 	if (pAccount==NULL){
 		fprintf(bank.file, "Error %d: your transaction failed - acount id %d does not exist\n", id_, account);
 		bank.read_unlock();
@@ -122,8 +124,8 @@ void balance_inquiry(int account, int password){
 
 void transfer(int account, int password, int target_account, int amount){
 	bank.read_lock();
-	Account* pAccount= bank.pAccount(account);
-	Account* pAccount_target=bank.pAccount(target_account);
+	Account* pAccount= bank.account_exist(account);
+	Account* pAccount_target=bank.account_exist(target_account);
 	if (pAccount==NULL){
 		fprintf(bank.file, "Error %d: your transaction failed - acount id %d does not exist\n", id_, account);
 		bank.read_unlock();
