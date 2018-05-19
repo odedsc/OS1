@@ -101,22 +101,32 @@ void Bank::Commission()
 	float commission_ratio = ((rand() % 3) + 2) / 100.0;
 	for (account_iterator i = account_list.begin(); i != account_list.end(); ++i)
 	{
+		Account& account = **i;
+
+		account.Lock();
+		int commission = static_cast<int>(account.Get_Balance() * commission_ratio + 0.5);
+
 		if (isVIP_ == false)
 		{
-			Account& account = **i;
-
-			account.Lock();
-			int commission = static_cast<int>(account.Get_Balance() * commission_ratio + 0.5);
-
-			account.Withdraw(commission);
+			account.withdraw(commission);
 			balance += commission;
-
-			int account_id = account.ID();
-			account.Unlock();
-
+		}
+		else
+		{
+			account.deposit(commission);
+			balance -= commission;
+		}
+		int account_id = account.ID();
+		account.Unlock();
+		
+		if (isVIP_ == false)
+		{
 			fprintf(plog_file, COMMISSION_MASSAGE, static_cast<int>(commission_ratio*100), commission, account_id);
 		}
-
+		else
+		{
+			fprintf(plog_file, COMMISSION_MASSAGE, static_cast<int>(commission_ratio*100), (-1*commission), account_id);
+		}
 	}
 }
 
