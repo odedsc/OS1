@@ -22,7 +22,6 @@ void Bank::Init(int num_of_ATM)
 
 Bank::~Bank()
 {
-
 	fclose(plog_file);
 
 	pthread_mutex_destroy(&write_mutex);
@@ -75,7 +74,6 @@ Account* Bank::pAccount(int account_id)
 			return *i;
 		}
 	}
-
 	return NULL;
 }
 
