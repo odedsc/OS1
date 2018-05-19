@@ -1,150 +1,49 @@
-#include "bank.h"
+/*
+ * bank.h
+ *
+ *  Created on: May 19, 2018
+ *      Author: os
+ */
 
-const char* COMMISSION_MASSAGE = "Bank: commissions of %d % were charged, the bank gained %d $ from account %d\n";
+#ifndef BANK_H_
+#define BANK_H_
 
-Bank::Bank()
-{
-	account_list       (),
-	account_iterator   (),
-	write_mutex        (),
-	read_mutex         (),
-	Bank_mutex         (),
-	read_counter       (0),
-	balance            (0),
-	plog_file          (fopen("log.txt", "w"))
-}
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <vector>
 
-Bank::~Bank()
-{
-	fclose(plog_file);
+#include "account.h"
+#include "ATM.h"
 
-	pthread_mutex_destroy(&write_mutex);
-	pthread_mutex_destroy(&read_mutex);
-	pthread_mutex_destroy(&Bank_mutex);
+class Bank{
+private:
+	vector<Account*> accounts_vec_;
+	pthread_mutex_t write_lock_;
+	pthread_mutex_t read_lock_;
+	int rd_count_;
+	int balance_;
 
-	while (account_list.size()>0)
-	{
-		Account* pAccout = account_list.back();
-		account_list.pop_back();
-		delete pAccout;
-	}
-}
+public:
+	FILE* file;
 
-void Bank::Read_Lock()
-{
-	pthread_mutex_lock(&read_mutex);
-	if (read_counter++ == 1)
-	{
-		pthread_mutex_lock(&write_mutex);
-	}
-	pthread_mutex_unlock(&read_mutex);
-}
+	Bank();
+	~Bank();
 
-void Bank::Read_Unlock()
-{
-	pthread_mutex_lock(&read_mutex);
-	if (read_counter-- == 0)
-	{
-		pthread_mutex_unlock(&write_mutex);
-	}
-	pthread_mutex_unlock(&read_mutex);}
+	void read_lock();
+	void write_lock();
+	void read_unlock();
+	void write_unlock();
 
-void Bank::Write_Lock()
-{
-	pthread_mutex_lock(&write_mutex);
-}
+	Account* account_exist(int account);
 
-void Bank::Write_Unlock()
-{
-	pthread_mutex_unlock(&write_mutex);
-}
+	void add_account(Account*);
+	void remove_account(Account*);
+	void commission();
+	void print();
 
-Account* Bank::pAccount(int account_id)
-{
-	for (account_iterator i = account_list.begin(); i != account_list.end(); ++i)
-	{
-		if ((*i)->ID() == account_id)
-		{
-			return *i;
-		}
-	}
-	return NULL;
-}
+};
 
-void Bank::Add_Account(Account* pAccount)
-{
-	for (account_iterator i = account_list.begin(); i != account_list.end(); i++)
-	{
-		if ((*i)->ID() > pAccount->ID())
-		{
-			account_list.insert(i, pAccount);
-			return;
-		}
-	}
-	account_list.push_back(pAccount);
-}
 
-void Bank::Delete_Account(Account* pAccount)
-{
-	for (account_iterator i = account_list.begin(); i != account_list.end(); ++i)
-	{
-		if (*i == pAccount)
-		{
-			account_list.erase(i);
-			return;
-		}
-	}
-}
 
-void Bank::Commission()
-{
-	float commission_ratio = ((rand() % 3) + 2) / 100.0;
-	for (account_iterator i = account_list.begin(); i != account_list.end(); ++i)
-	{
-		Account& account = **i;
-
-		account.Lock();
-		int commission = static_cast<int>(account.Get_Balance() * commission_ratio + 0.5);
-
-		if (isVIP_ == false)
-		{
-			account.withdraw(commission);
-			balance += commission;
-		}
-		else
-		{
-			account.deposit(commission);
-			balance -= commission;
-		}
-		int account_id = account.ID();
-		account.Unlock();
-		
-		if (isVIP_ == false)
-		{
-			fprintf(plog_file, COMMISSION_MASSAGE, static_cast<int>(commission_ratio*100), commission, account_id);
-		}
-		else
-		{
-			fprintf(plog_file, COMMISSION_MASSAGE, static_cast<int>(commission_ratio*100), (-1*commission), account_id);
-		}
-	}
-}
-
-void Bank::Log()
-{
-	Write_Lock();
-
-	printf("\033[2J");
-	printf("\033[1;1H");
-
-	printf("Current Bank Status\n");
-	for (account_iterator i = account_list.begin(); i != account_list.end(); ++i)
-	{
-		Account& account = **i;
-		printf("Account %d: Balance - %d $ , Account Password - %d\n",
-				account.ID(), account.Get_Balance(), account.Password());
-	}
-	printf("The Bank Has %d $\n", balance);
-
-	Write_Unlock();
-}
+#endif /* BANK_H_ */
