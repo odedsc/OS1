@@ -69,5 +69,26 @@ void ATM::deposit(int account, int password, int amount){
 	}
 
 }
+
+void withdraw(int account, int password, int amount){
+	bank.read_lock();
+	Account* pAccount= bank.pAccount(account);
+	if (pAccount!=NULL && pAccount->password_!=password){
+		fprintf(bank.file, "Error %d: your transaction failed - password for account %d is incorrect", id_, account);
+		bank.read_unlock();
+	}
+	else if (amount > pAccount->balance_){
+		fprintf(bank.file, "Error %d: your transaction failed - account id %d balance is lower than %d", id_, account, amount);
+		bank.read_unlock();
+	}
+	else{
+		pAccount->lock();
+		sleep(1);
+		pAccount->deposit(amount);
+		pAccount->unlock();
+		bank.read_unlock();
+		fprintf(bank.file, "%d: Account %d new balance is %d after %d $ was withdrew", id_, account, pAccount->balance_, amount);
+	}
 }
+
 
