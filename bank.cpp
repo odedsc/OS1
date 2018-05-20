@@ -46,7 +46,7 @@ void Bank::read_unlock(){
 	pthread_mutex_lock(&read_lock_);
 	rd_count_--;
 	if (rd_count_ == 0){
-		pthread_mutex_unlock(&read_lock_);
+		pthread_mutex_unlock(&write_lock_);
 	}
 	pthread_mutex_unlock(&read_lock_);
 }
