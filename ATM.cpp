@@ -155,4 +155,12 @@ void ATM::transfer(int account, int password, int target_account, int amount){
 
 
 
+void ATM::lock(){
+	pthread_mutex_lock(&mutex_);
+}
+
+void ATM::unlock(){
+	pthread_mutex_unlock(&mutex_);
+}
+
 
