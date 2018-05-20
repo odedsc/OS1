@@ -20,10 +20,12 @@ private:
 	const int id_;
 	int password_;
 	int balance_;
-	bool isVIP_;
 	pthread_mutex_t mutex_;
+	friend class ATM;
+	friend class Bank;
 
 public:
+	bool isVIP_;
 	Account(int id, int password, int balance);
 	~Account();
 

@@ -19,7 +19,7 @@ Account::~Account(){
 	pthread_mutex_destroy(&mutex_);
 }
 
-void Account::lock(int password){
+void Account::lock(){
 	pthread_mutex_lock(&mutex_);
 }
 
