@@ -55,7 +55,7 @@ void ATM::turn_VIP(int account, int password){
 }
 
 void ATM::deposit(int account, int password, int amount){
-	bank.read_lock_();
+	bank.read_lock();
 	Account* pAccount= bank.account_exist(account);
 	if (pAccount==NULL){
 		fprintf(bank.file, "Error %d: your transaction failed - acount id %d does not exist\n", id_, account);
