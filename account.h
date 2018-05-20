@@ -38,7 +38,7 @@ public:
 	int  get_id() const {return id_;}
 	int  get_password() const {return password_;}
 
-	void event(ATM&);
+	//void event(ATM&);
 };
 
 
