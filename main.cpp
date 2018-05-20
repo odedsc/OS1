@@ -1,161 +1,121 @@
+/*
+ * main.cpp
+
+ *
+ *  Created on: May 20, 2018
+ *      Author: os
+ */
+
 #include <pthread.h>
 #include <unistd.h>
+
 #include <stdlib.h>
+#include <time.h>
 #include <stdio.h>
 #include <iostream>
-#include <time.h>
 
 #include "bank.h"
+#include "ATM.h"
+#include "bank.cpp"
+#include "ATM.cpp"
 
-using namespace std;
+#define MAX_LINE_SIZE 80
 
-const int MAX_LINE_SIZE = 500;
+Bank bank;
+bool finish;
 
-typedef void* (*Thread_Func)(void*);
-
-/* thread create wrapper */
-
-static void Thread_Create(pthread_t* pThread, Thread_Func Func, void* parameters)
-{
-	pthread_create(pThread, NULL, Func, parameters);
-}
-
-class Usage {};
-ostream& operator << (ostream& cout, Usage)
-{
-	cout << "Bank <Number of ATMs – N> <ATM_1_input_file> <ATM_2_input_file>...<ATM_N_input_file‬‬>\n";
-	return cout;
-}
-
-class ATM_Thread_Parameters
-{
+class ATM_threads_params{
 public:
-	int   id;
-	char* pIn_file;
+	int id;
+	char* file_name;
 };
 
-/* gloabl */
-Bank bank;
+void* ATM_EVENT(void* ATM_threads_params){
+	ATM_threads_params& params = *(ATM_threads_params*)ATM_threads_params;
+	ATM(params.id);
+	FILE* file=fopen(params.file_name, "r");
+	char line[MAX_LINE_SIZE];
+	while (fgets(line, MAX_LINE_SIZE, file)){
+		char* pEnd;
 
-void* Bank_Log_Routine(void*)
-{
-	while (bank.done == false)
-	{
-		bank.Log();
-		usleep(500*1000);
+		int value1 = strtol(&line[2], &pEnd, 10);
+		int value2 = strtol(pEnd,     &pEnd, 10);
+		int value3 = strtol(pEnd,     &pEnd, 10);
+		int value4 = strtol(pEnd,     &pEnd, 10);
+
+		ATM.lock();
+
+		switch (line[0])
+		{
+		case 'O': ATM.open_account(value1,value2,value3);   break;
+		case 'L': ATM.turn_VIP(value1,value2);        	    break;
+		case 'D': ATM.deposit(value1,value2,value3);        break;
+		case 'W': ATM.withdraw(value1,value2,value3);       break;
+		case 'B': ATM.balance_inquiry(value1,value2);       break;
+		case 'T': ATM.transfer(value1,value2,value3,value4);break;
+		default:  break;
+		}
+
+		ATM.unlock();
+
+		usleep(100);
 	}
 	pthread_exit(NULL);
 }
 
-void* Bank_Commission_Routine(void*)
+void* Commision_Event(void*)
 {
-	while (bank.done == false)
+	while (finish == false)
 	{
-		bank.Commission();
+		bank.commission();
 		sleep(3);
 	}
 
 	pthread_exit(NULL);
 }
 
-void* Bank_Fix_ATM_Routine(void* parameters)
+void* Print_Event(void*)
 {
-	int num_of_ATM = *(int*)parameters;
-
-	while (bank.done == false)
+	while (finish == false)
 	{
-		bank.Fix_ATM(num_of_ATM);
-		sleep(2);
+		bank.print();
+		usleep(500000);
 	}
 	pthread_exit(NULL);
 }
 
-void* ATM_Routine(void* ATM_thread_parameters)
+int main (int argc, char *argv[])
 {
-	ATM_Thread_Parameters& thread_parameters = *(ATM_Thread_Parameters*)ATM_thread_parameters;
+	int ATM_num=atoi(argv[1]);
 
-	ATM ATM(thread_parameters.id);
+	/*initialize relevant threads*/
+	pthread_t ATM_threads[ATM_num];
+	pthread_t commission_thread;
+	pthread_t print_thread;
+	ATM_threads_params* ATM_threads_params;
 
-	FILE* pIn_file = fopen(thread_parameters.pIn_file, "r");
-	char  line[MAX_LINE_SIZE];
+	finish=false;
 
-	while (fgets(line, MAX_LINE_SIZE, pIn_file))
-	{
-
-		ATM_Parameters parameters(line);
-
-		ATM.Lock();
-
-		switch (parameters.action)
-		{
-		case Account::OPEN_ACCOUNT:    ATM.Open_Account   (parameters); break;
-		case Account::DEPOSIT:         ATM.Deposit        (parameters); break;
-		case Account::WITHDRAW:        ATM.Withdraw       (parameters); break;
-		case Account::GET_BALANCE:     ATM.Get_Balance    (parameters); break;
-		case Account::CHANGE_PASSWORD: ATM.Change_Password(parameters); break;
-		case Account::TRANSFER:        ATM.Transfer       (parameters); break;
-		case Account::MERGE:           ATM.Merge          (parameters); break;
-
-		default: break;
-		}
-
-		ATM.Unlock();
-
-		usleep((rand() % 100 + 50) * 1000);
+	ATM_threads_params[ATM_num]=new ATM_threads_params[ATM_num];
+	for (int i=0; i<ATM_num; i++){
+		ATM_threads_params[i].id=i;
+		ATM_threads_params[i].file_name=argv[i+2];
+		pthread_create(&ATM_threads[i], NULL, ATM_EVENT, (void*)&(ATM_threads_params[i]));
 	}
 
-	pthread_exit(NULL);
-}
+	pthread_create(&commission_thread, NULL, Commision_Event, static_cast<void*>(NULL));
+	pthread_create(&print_thread, NULL, Print_Event, static_cast<void*>(NULL));
 
-int main(int argc, char **argv)
-{
-	if (argc < 3)
-	{
-		cout << Usage() << endl;
-		return -1;
+	for (int i = 0; i < ATM_num; i++){
+		pthread_join(ATM_threads[i], NULL);
 	}
 
-	int                num_of_ATM = atoi(argv[1]);
-	pthread_t          ATM_thread[num_of_ATM];
-	pthread_t          commission_thread;
-	pthread_t          fix_ATM_thread;
-	pthread_t          bank_log_thread;
-	ATM_Thread_Parameters* pATM_thread_parameters;
+	finish=true;
 
-	/* Init */
-	srand(time(NULL));
-	bank.Init(num_of_ATM);
-
-	try {
-		pATM_thread_parameters = new ATM_Thread_Parameters[num_of_ATM];
-		for (int i = 0; i < num_of_ATM; i++)
-		{
-			pATM_thread_parameters[i].id        = i;
-			pATM_thread_parameters[i].pIn_file  = argv[i+2];
-
-			/* create thread */
-			Thread_Create(&ATM_thread[i], ATM_Routine, (void*)&(pATM_thread_parameters[i]));
-		}
-
-		Thread_Create(&commission_thread, Bank_Commission_Routine, static_cast<void*>(NULL));
-		Thread_Create(&fix_ATM_thread,    Bank_Fix_ATM_Routine,    static_cast<void*>(&num_of_ATM));
-		Thread_Create(&bank_log_thread,   Bank_Log_Routine,        static_cast<void*>(NULL));
-	}
-	catch(int& err)
-	{
-		fprintf(stderr, "ERROR code: %d\n", err);
-		return -1;
-	}
-
-	for (int i = 0; i < num_of_ATM; i++)
-		pthread_join(ATM_thread[i], NULL);
-
-	bank.done = true;
-	delete[] pATM_thread_parameters;
+	delete[] ATM_threads_params;
 
 	pthread_join(commission_thread, NULL);
-	pthread_join(fix_ATM_thread,    NULL);
-	pthread_join(bank_log_thread,   NULL);
+	pthread_join(print_thread, NULL);
 
-	return -1;
+	return 0;
 }
