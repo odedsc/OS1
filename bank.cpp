@@ -106,14 +106,15 @@ void Bank::commission(){
 		}
 		account.unlock();
 
-		if(account.isVIP_)
+		int commission_val_precents = static_cast<int>(commission_val*100);
+		if(!account.isVIP_)
 		{
-			fprintf(file, "‫ ‪Bank: commissions of %d % were charged, the bank gained %d $ from account %d\n", static_cast<int>(commission_val*100), commission, account.get_id);
+			fprintf(file, "‫ ‪Bank: commissions of %d were charged, the bank gained %d $ from account %d\n", commission_val_precents, commission, account.get_id());
 		}
-		else
+		/*else
 		{
 			fprintf(file, "‫ ‪Bank: commissions of %d % were charged, the bank gained %d $ from account %d\n", static_cast<int>(commission_val*100), -1*commission, account.get_id);
-		}
+		}*/
 	}
 }
 

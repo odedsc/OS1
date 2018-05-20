@@ -59,7 +59,7 @@ void ATM::deposit(int account, int password, int amount){
 	bank.read_lock();
 	Account* pAccount= bank.account_exist(account);
 	if (pAccount==NULL){
-		fprintf(bank.file, "Error %d: your transaction failed - acount id %d does not exist\n", id_, account);
+		fprintf(bank.file, "Error %d: your transaction failed - account id %d does not exist\n", id_, account);
 		bank.read_unlock();
 	}
 	else if (pAccount!=NULL && pAccount->password_!=password){
@@ -77,7 +77,7 @@ void ATM::deposit(int account, int password, int amount){
 
 }
 
-void withdraw(int account, int password, int amount){
+void ATM::withdraw(int account, int password, int amount){
 	bank.read_lock();
 	Account* pAccount= bank.account_exist(account);
 	if (pAccount==NULL){
@@ -102,7 +102,7 @@ void withdraw(int account, int password, int amount){
 	}
 }
 
-void balance_inquiry(int account, int password){
+void ATM::balance_inquiry(int account, int password){
 	bank.read_lock();
 	Account* pAccount= bank.account_exist(account);
 	if (pAccount==NULL){
@@ -123,7 +123,7 @@ void balance_inquiry(int account, int password){
 	}
 }
 
-void transfer(int account, int password, int target_account, int amount){
+void ATM::transfer(int account, int password, int target_account, int amount){
 	bank.read_lock();
 	Account* pAccount= bank.account_exist(account);
 	Account* pAccount_target=bank.account_exist(target_account);
@@ -149,7 +149,7 @@ void transfer(int account, int password, int target_account, int amount){
 		pAccount->transfer(*pAccount_target, amount);
 		pAccount->unlock();
 		bank.read_unlock();
-		fprintf(bank.file, "%d: Transfer %d from account %d to account %d new account balance is %d new target account balance is %d\n", id_, amount, account, target_account,pAccount->balance_,pAccount_target->balance_)
+		fprintf(bank.file, "%d: Transfer %d from account %d to account %d new account balance is %d new target account balance is %d\n", id_, amount, account, target_account,pAccount->balance_,pAccount_target->balance_);
 	}
 }
 
