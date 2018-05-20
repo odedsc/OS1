@@ -1,51 +1,49 @@
+/*
+ * bank.h
+ *
+ *  Created on: May 19, 2018
+ *      Author: os
+ */
+
 #ifndef BANK_H_
 #define BANK_H_
 
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <pthread.h>
-
-#include <list>
+#include <vector>
 
 #include "account.h"
+#include "ATM.h"
 
-class Bank
-{
+class Bank{
 private:
-
-	list<Account*> account_list;
-	typedef list<Account*>::iterator account_iterator;
-
-	pthread_mutex_t write_mutex;
-	pthread_mutex_t read_mutex;
-	pthread_mutex_t Bank_mutex;
-
-	int bank_balance;
-
-	int read_counter;
+	vector<Account*> accounts_vec_;
+	pthread_mutex_t write_lock_;
+	pthread_mutex_t read_lock_;
+	int rd_count_;
+	int balance_;
 
 public:
-	bool done;
-	
-	FILE* plog_file;
+	FILE* file;
 
 	Bank();
 	~Bank();
 
-	void Init(int num_of_ATMs);
+	void read_lock();
+	void write_lock();
+	void read_unlock();
+	void write_unlock();
 
-	void Read_Lock   ();
-	void Read_Unlock ();
-	void Write_Lock  ();
-	void Write_Unlock();
+	Account* account_exist(int account);
 
-	Account* pAccount (int account_id);
-	void Add_Account   (Account*);
-	void Delete_Account(Account*);
+	void add_account(Account*);
+	void remove_account(Account*);
+	void commission();
+	void print();
 
-	void Commission();
-	void Log       ();
 };
 
 
-#endif
+
+#endif /* BANK_H_ */
