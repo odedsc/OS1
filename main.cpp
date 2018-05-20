@@ -24,14 +24,14 @@
 Bank bank;
 bool finish;
 
-class ATM_threads_params{
+class ATM_params{
 public:
 	int id;
 	char* file_name;
 };
 
 void* ATM_EVENT(void* ATM_threads_params){
-	ATM_threads_params& params = *(ATM_threads_params*)ATM_threads_params;
+	ATM_params& params = *(ATM_params*)ATM_threads_params;
 	ATM my_ATM(params.id);
 	FILE* file=fopen(params.file_name, "r");
 	char line[MAX_LINE_SIZE];
@@ -48,7 +48,7 @@ void* ATM_EVENT(void* ATM_threads_params){
 		switch (line[0])
 		{
 		case 'O': my_ATM.open_account(value1,value2,value3);   break;
-		case 'L': my_ATM.turn_VIP(value1,value2);        	   break;
+		case 'L': my_ATM.turn_VIP(value1,value2);        	    break;
 		case 'D': my_ATM.deposit(value1,value2,value3);        break;
 		case 'W': my_ATM.withdraw(value1,value2,value3);       break;
 		case 'B': my_ATM.balance_inquiry(value1,value2);       break;
@@ -56,7 +56,7 @@ void* ATM_EVENT(void* ATM_threads_params){
 		default:  break;
 		}
 
-		ATM.unlock();
+		my_ATM.unlock();
 
 		usleep(100);
 	}
@@ -92,11 +92,11 @@ int main (int argc, char *argv[])
 	pthread_t ATM_threads[ATM_num];
 	pthread_t commission_thread;
 	pthread_t print_thread;
-	ATM_threads_params* ATM_threads_params;
+	ATM_params* ATM_threads_params;
 
 	finish=false;
 
-	ATM_threads_params[ATM_num]=new ATM_threads_params[ATM_num];
+	ATM_threads_params=new ATM_params[ATM_num];
 	for (int i=0; i<ATM_num; i++){
 		ATM_threads_params[i].id=i;
 		ATM_threads_params[i].file_name=argv[i+2];
