@@ -84,6 +84,12 @@ void* Print_Event(void*)
 
 int main (int argc, char *argv[])
 {
+	if ((argc < 3) || (*argv[1] != (argc-2)))
+	{
+		cout << "illegal arguments" << endl;
+		return -1;
+	}
+	
 	int ATM_num=atoi(argv[1]);
 
 	/*initialize relevant threads*/
