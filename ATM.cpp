@@ -26,6 +26,7 @@ void ATM::open_account(int id, int password, int balance){
 
 	/*check if already exists*/
 	if (bank.account_exist(id)!=NULL){
+		sleep(1);
 		bank.write_unlock();
 		fprintf(bank.file, "Error %d: Your transaction failed - account with the same id exists\n", id_);
 	}
@@ -42,6 +43,7 @@ void ATM::turn_VIP(int account, int password){
 	bank.read_lock();
 	Account* pAccount= bank.account_exist(account);
 	if (pAccount==NULL || (pAccount!=NULL && pAccount->password_!=password)){
+		sleep(1);
 		fprintf(bank.file, "Error %d: your transaction failed - password for account %d is incorrect\n", id_, account);
 		bank.read_unlock();
 	}
@@ -59,10 +61,12 @@ void ATM::deposit(int account, int password, int amount){
 	bank.read_lock();
 	Account* pAccount= bank.account_exist(account);
 	if (pAccount==NULL){
+		sleep(1);
 		fprintf(bank.file, "Error %d: your transaction failed - account id %d does not exist\n", id_, account);
 		bank.read_unlock();
 	}
 	else if (pAccount!=NULL && pAccount->password_!=password){
+		sleep(1);
 		fprintf(bank.file, "Error %d: your transaction failed - password for account %d is incorrect\n", id_, account);
 		bank.read_unlock();
 	}
@@ -81,14 +85,17 @@ void ATM::withdraw(int account, int password, int amount){
 	bank.read_lock();
 	Account* pAccount= bank.account_exist(account);
 	if (pAccount==NULL){
+		sleep(1);
 		fprintf(bank.file, "Error %d: your transaction failed - account id %d does not exist\n", id_, account);
 		bank.read_unlock();
 	}
 	else if (pAccount!=NULL && pAccount->password_!=password){
+		sleep(1);
 		fprintf(bank.file, "Error %d: your transaction failed - password for account %d is incorrect\n", id_, account);
 		bank.read_unlock();
 	}
 	else if (amount > pAccount->balance_){
+		sleep(1);
 		fprintf(bank.file, "Error %d: your transaction failed - account id %d balance is lower than %d\n", id_, account, amount);
 		bank.read_unlock();
 	}
@@ -106,10 +113,12 @@ void ATM::balance_inquiry(int account, int password){
 	bank.read_lock();
 	Account* pAccount= bank.account_exist(account);
 	if (pAccount==NULL){
+		sleep(1);
 		fprintf(bank.file, "Error %d: your transaction failed - acount id %d does not exist\n", id_, account);
 		bank.read_unlock();
 	}
 	else if (pAccount!=NULL && pAccount->password_!=password){
+		sleep(1);
 		fprintf(bank.file, "Error %d: your transaction failed - password for account %d is incorrect\n", id_, account);
 		bank.read_unlock();
 	}
@@ -128,18 +137,22 @@ void ATM::transfer(int account, int password, int target_account, int amount){
 	Account* pAccount= bank.account_exist(account);
 	Account* pAccount_target=bank.account_exist(target_account);
 	if (pAccount==NULL){
+		sleep(1);
 		fprintf(bank.file, "Error %d: your transaction failed - acount id %d does not exist\n", id_, account);
 		bank.read_unlock();
 	}
 	else if (pAccount_target==NULL){
+		sleep(1);
 		fprintf(bank.file, "Error %d: your transaction failed - acount id %d does not exist\n", id_, target_account);
 		bank.read_unlock();
 	}
 	else if (pAccount!=NULL && pAccount->password_!=password){
+		sleep(1);
 		fprintf(bank.file, "Error %d: your transaction failed - password for account %d is incorrect\n", id_, account);
 		bank.read_unlock();
 	}
 	else if (amount > pAccount->balance_){
+		sleep(1);
 		fprintf(bank.file, "Error %d: your transaction failed - account id %d balance is lower than %d\n", id_, account, amount);
 		bank.read_unlock();
 	}
