@@ -58,7 +58,7 @@ void* ATM_EVENT(void* ATM_threads_params){
 
 		ATM.unlock();
 
-		usleep(100);
+		usleep(100000);
 	}
 	pthread_exit(NULL);
 }
