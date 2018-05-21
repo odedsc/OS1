@@ -65,8 +65,8 @@ void* Commision_Event(void*)
 {
 	while (finish == false)
 	{
-		bank.commission();
 		sleep(3);
+		bank.commission();
 	}
 
 	pthread_exit(NULL);
