@@ -26,9 +26,6 @@ public:
 	void withdraw(int account, int password, int amount);
 	void balance_inquiry(int account, int password);
 	void transfer(int account, int password, int target_account, int amount);
-	
-	void lock();
-	void unlock();
 
 };
 
