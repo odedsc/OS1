@@ -33,7 +33,7 @@ void ATM::open_account(int id, int password, int balance){
 		sleep(1);
 		bank.add_account(new_acc);
 		bank.write_unlock();
-		fprintf(bank.file, "%d: New account id is %d with password %d and initial balance %d\n",id_, id_, password, balance);
+		fprintf(bank.file, "%d: New account id is %d with password %d and initial balance %d\n",id_, id, password, balance);
 	}
 
 }
@@ -153,6 +153,12 @@ void ATM::transfer(int account, int password, int target_account, int amount){
 	}
 }
 
+void ATM::lock(){
+	pthread_mutex_lock(&mutex_);
+}
 
+void ATM::unlock(){
+	pthread_mutex_unlock(&mutex_);
+}
 
 
