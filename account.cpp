@@ -12,11 +12,15 @@ Account::Account(int id, int password, int balance){
 	password_ = password;
 	balance_ = balance;
 	isVIP_ = false;
-	pthread_mutex_init(&mutex_, NULL);
+	if (pthread_mutex_init(&mutex_, NULL)){
+		perror("mutex initialization failed\n");
+	}
 }
 
 Account::~Account(){
-	pthread_mutex_destroy(&mutex_);
+	if (pthread_mutex_destroy(&mutex_)){
+		perror("mutex destruction failed\n");
+	}
 }
 
 void Account::lock(){

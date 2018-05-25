@@ -11,15 +11,23 @@ Bank::Bank(){
 	rd_count_=0;
 	balance_=0;
 	file=fopen("log.txt", "w");
-	pthread_mutex_init(&write_lock_, NULL);
-	pthread_mutex_init(&read_lock_, NULL);
+	if (pthread_mutex_init(&write_lock_, NULL)){
+		perror("mutex initialization failed\n");
+	}
+	if (pthread_mutex_init(&read_lock_, NULL)){
+		perror("mutex initialization failed\n");
+	}
 }
 
 Bank::~Bank(){
 
 	fclose(file);
-	pthread_mutex_destroy(&write_lock_);
-	pthread_mutex_destroy(&read_lock_);
+	if (pthread_mutex_destroy(&write_lock_)){
+		perror("mutex destruction failed\n");
+	}
+	if(pthread_mutex_destroy(&read_lock_)){
+		perror("mutex destruction failed\n");
+	}
 
 	while (accounts_vec_.size()){
 		Account* tmp=accounts_vec_.back();
@@ -109,11 +117,10 @@ void Bank::commission(){
 		int commission_val_precents = static_cast<int>(commission_val*100);
 		if(!account.isVIP_)
 		{
-			fprintf(file, "Bank: commissions of %d %% were charged, the bank gained %d $ from account %d\n", commission_val_precents, commission, account.get_id());
-		}
+			fprintf(file, "Bank: commissions of %d %% were charged, the bank gained %d $ from account %d\n", commission_val_precents, commission, account.get_id());		}
 		/*else
 		{
-			fprintf(file, "Bank: commissions of %d %% were charged, the bank gained %d $ from account %d\n", commission_val_precents, -1*commission, account.get_id());
+			fprintf(file, "‫ ‪Bank: commissions of %d % were charged, the bank gained %d $ from account %d\n", static_cast<int>(commission_val*100), -1*commission, account.get_id);
 		}*/
 	}
 }

@@ -12,11 +12,15 @@ extern Bank bank;
 
 ATM::ATM(int id){
 	id_=id;
-	pthread_mutex_init(&mutex_, NULL);
+	if (pthread_mutex_init(&mutex_, NULL)){
+		perror("mutex initialization failed\n");
+	}
 }
 
 ATM::~ATM(){
-	pthread_mutex_destroy(&mutex_);
+	if (pthread_mutex_destroy(&mutex_)){
+		perror("mutex destruction failed\n");
+	}
 }
 
 void ATM::open_account(int id, int password, int balance){

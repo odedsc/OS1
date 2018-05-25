@@ -1,6 +1,5 @@
 /*
  * main.cpp
-
  *
  *  Created on: May 20, 2018
  *      Author: os
@@ -86,11 +85,12 @@ int main (int argc, char *argv[])
 {
 	if ((argc < 3) || (atoi(argv[1]) != (argc-2)))
 	{
-		cout << "illegal arguments" << endl;
+		cout << "illegal arguments\n" << endl;
 		return -1;
 	}
-	
+
 	int ATM_num=atoi(argv[1]);
+
 
 	/*initialize relevant threads*/
 	pthread_t ATM_threads[ATM_num];
@@ -104,22 +104,34 @@ int main (int argc, char *argv[])
 	for (int i=0; i<ATM_num; i++){
 		ATM_threads_params[i].id=i+1;
 		ATM_threads_params[i].file_name=argv[i+2];
-		pthread_create(&ATM_threads[i], NULL, ATM_EVENT, (void*)&(ATM_threads_params[i]));
+		if (pthread_create(&ATM_threads[i], NULL, ATM_EVENT, (void*)&(ATM_threads_params[i]))){
+			perror("thread creation failed\n");
+		}
 	}
 
-	pthread_create(&commission_thread, NULL, Commision_Event, static_cast<void*>(NULL));
-	pthread_create(&print_thread, NULL, Print_Event, static_cast<void*>(NULL));
+	if (pthread_create(&commission_thread, NULL, Commision_Event, static_cast<void*>(NULL))){
+		perror("thread creation failed\n");
+	}
+	if (pthread_create(&print_thread, NULL, Print_Event, static_cast<void*>(NULL))){
+		perror("thread creation failed\n");
+	}
 
 	for (int i = 0; i < ATM_num; i++){
-		pthread_join(ATM_threads[i], NULL);
+		if (pthread_join(ATM_threads[i], NULL)){
+			perror("thread join failed\n");
+		}
 	}
 
 	finish=true;
 
 	delete[] ATM_threads_params;
 
-	pthread_join(commission_thread, NULL);
-	pthread_join(print_thread, NULL);
+	if (pthread_join(commission_thread, NULL)){
+		perror("thread join failed\n");
+	}
+	if (pthread_join(print_thread, NULL)){
+		perror("thread join failed\n");
+	}
 
 	return 0;
 }
