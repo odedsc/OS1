@@ -11,6 +11,8 @@
 #include "bank.h"
 #include "account.h"
 
+//class for the ATM
+//Module's role: implementation of all the functions taking care of possible actions that needs to be done by the ATM
 class ATM{
 private:
 	int id_;

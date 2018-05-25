@@ -15,6 +15,9 @@ using namespace std;
 
 #include "ATM.h"
 
+//a class to Account
+//Module's role: implementation of all the functions taking care of possible actions for the account
+
 class Account{
 private:
 	int id_;
@@ -40,7 +43,6 @@ public:
 	int  get_id() const {return id_;}
 	int  get_password() const {return password_;}
 
-	//void event(ATM&);
 };
 
 
