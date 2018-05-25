@@ -1,9 +1,19 @@
 /*
- * bank.h
- *
- *  Created on: May 19, 2018
- *      Author: os
- */
+File name: bank.h
+Module's role: declaration of all the functions taking care of checks an all the of bank actions 
+Functions: 
+Bank();
+Bank();
+void read_lock();
+void write_lock();
+void read_unlock();
+void write_unlock();
+Account* account_exist(int account);
+void add_account(Account*);
+void remove_account(Account*);
+void commission();
+void print();
+*/
 
 #ifndef BANK_H_
 #define BANK_H_
