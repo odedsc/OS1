@@ -33,6 +33,19 @@ cmdParams::cmdParams(int id_, const InstInfo &cmd_inf_, int src1DepInst_, int sr
 	latency=latency_;
 }
 
+//a class which represents all the commands in the progress and information about them
+class Prog{
+private:
+	vector<cmdParams*> cmds_vec;
+	unsigned int opsLatency[MAX_OPS];
+	int ProgDepth;
+	
+public:
+	Prog(const unsigned int opsLatency[]);
+	~Prog();
+	
+	
+	
 ProgCtx analyzeProg(const unsigned int opsLatency[],  InstInfo progTrace[], unsigned int numOfInsts) {
     return PROG_CTX_NULL;
 }
