@@ -43,7 +43,52 @@ private:
 public:
 	Prog(const unsigned int opsLatency[]);
 	~Prog();
-	
+	cmdParams* get_cmdParams(int id);
+	int get_opLatency(int id);
+	void add_elem(cmdParams* new_elem);
+	int get_ProgDepth() {return ProgDepth;}
+	void update_ProgDepth(int new_depth);
+	int get_size();
+	void delete_last_elem();
+};
+
+
+Prog::Prog(const unsigned int opsLatency[]){
+	ProgDepth=0;
+	for (int i=0; i<MAX_OPS; i++){
+		this->opsLatency[i]=opsLatency[i];
+	}
+}
+
+Prog::~Prog(){
+	cmds_vec.clear();
+	delete &cmds_vec;
+}
+
+cmdParams* Prog::get_cmdParams(int id){
+	return cmds_vec.at(id);
+}
+
+int Prog::get_opLatency(int id){
+	return opsLatency[id];
+}
+
+void Prog::add_elem(cmdParams* new_elem){
+	cmds_vec.push_back(new_elem);
+}
+
+void Prog::update_ProgDepth(int new_depth){
+	this->ProgDepth=new_depth;
+}
+
+int Prog::get_size(){
+	return cmds_vec.size();
+}
+
+void Prog::delete_last_elem(){
+	cmds_vec.pop_back();
+}
+
 	
 	
 ProgCtx analyzeProg(const unsigned int opsLatency[],  InstInfo progTrace[], unsigned int numOfInsts) {
