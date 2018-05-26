@@ -22,6 +22,16 @@ public:
 	int get_latency() {return latency;}
 };
 
+cmdParams::cmdParams(int id_, const InstInfo &cmd_inf_, int src1DepInst_, int src2DepInst_, int latency_){
+	id=id_;
+	cmd_inf.dstIdx=cmd_inf_.dstIdx;
+	cmd_inf.opcode=cmd_inf_.opcode;
+	cmd_inf.src1Idx=cmd_inf_.src1Idx;
+	cmd_inf.src2Idx=cmd_inf_.src2Idx;
+	src1DepInst=src1DepInst_;
+	src2DepInst=src2DepInst_;
+	latency=latency_;
+}
 
 ProgCtx analyzeProg(const unsigned int opsLatency[],  InstInfo progTrace[], unsigned int numOfInsts) {
     return PROG_CTX_NULL;
