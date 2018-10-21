@@ -43,3 +43,32 @@ xlabel('old image pixels');
 ylabel('new image pixels after converting');
 
 figure(6);imshow(new_im,[]); impixelinfo;
+
+%% lab3:
+
+BW = ([1 1 0 ; 1 1 0 ; 0 0 1]);
+CC1 = bwconncomp(BW, 4);
+CC2 = bwconncomp(BW, 8);
+figure(7);imshow(BW); 
+
+BW = imread('text.png');
+
+new_im2=im;
+for x=1:127
+    for y=1:127
+        if(im(y,x)>50)
+            new_im2(y,x)=255;
+        elseif  (im(y,x)<=50)
+            new_im2(y,x)=0;
+        end;
+    end;
+end;
+
+figure(8);
+plot(im,new_im2);
+title('old image pixels as function of new after converting');
+xlabel('old image pixels');
+ylabel('new image pixels after converting');
+
+figure(9); histogram(im);
+figure(10); histogram(new_im2);
