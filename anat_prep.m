@@ -32,6 +32,8 @@ for x=1:127
             new_im(y,x)=255;
         elseif  (im(y,x)<(level-window/2))
             new_im(y,x)=0;
+        else
+            new_im(y,x)=(im(y,x)-(level-window/2))/window*255;
         end;
     end;
 end;
@@ -72,3 +74,10 @@ ylabel('new image pixels after converting');
 
 figure(9); histogram(im);
 figure(10); histogram(new_im2);
+
+%% lab4:
+I = imread('pout.tif');
+h = 1/5*ones(5,1);
+H = h*h';
+imfilt = filter2(H,I);
+figure(11);imshowpair(I,imfilt,'montage')
